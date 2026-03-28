@@ -1,0 +1,23 @@
+[project]
+name = "epifolio-notebooks"
+version = "0.1.0"
+description = "Marimo notebooks exploring TCGA cancer regulatory genomics data"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "epifolio",
+    "anywidget>=0.9.18",
+    "bioframe>=0.8.0",
+    "higlass-python",
+    "jupyter-scatter[all]>=0.22.0",
+    "marimo>=0.20.2",
+    "numpy>=2.3,<3",
+    "pandas>=3.0.0",
+    "pyarrow>=18.0.0",
+    "plotly>=6.1.2",
+    "seaborn>=0.13.2",
+    "grandscatter>=0.2.1",
+]
+
+[tool.uv.sources]
+epifolio = { path = "lib/", editable = true }

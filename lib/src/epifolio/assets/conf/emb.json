@@ -1,0 +1,46 @@
+{
+  "organ_system_groupings": [
+    {
+      "group_name": "Ectoderm",
+      "color": "#56B4E9",
+      "cancer_codes": [
+        "BRCA",
+        "BRCA Basal",
+        "GBMx",
+        "HNSC",
+        "LGGx",
+        "PCPG",
+        "SKCM"
+      ]
+    },
+    {
+      "group_name": "Mesoderm",
+      "color": "#E69F00",
+      "cancer_codes": [
+        "ACCx",
+        "CESC",
+        "KIRC",
+        "KIRP",
+        "MESO",
+        "TGCT",
+        "UCEC"
+      ]
+    },
+    {
+      "group_name": "Endoderm",
+      "color": "#009E73",
+      "cancer_codes": [
+        "BLCA",
+        "CHOL",
+        "COAD",
+        "ESCA",
+        "LIHC",
+        "LUAD",
+        "LUSC",
+        "PRAD",
+        "STAD",
+        "THCA"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+    "organ_system_groupings": [
+        {
+            "group_name": "Endocrine System",
+            "color": "#4E79A7",
+            "cancer_codes": [
+                "ACCx",
+                "PCPG",
+                "THCA"
+            ]
+        },
+        {
+            "group_name": "Urogenital System (Urinary)",
+            "color": "#F28E2B",
+            "cancer_codes": [
+                "BLCA",
+                "KIRC",
+                "KIRP"
+            ]
+        },
+        {
+            "group_name": "Reproductive System (Female)",
+            "color": "#E15759",
+            "cancer_codes": [
+                "BRCA",
+                "BRCA Basal",
+                "CESC",
+                "UCEC"
+            ]
+        },
+        {
+            "group_name": "Reproductive System (Male)",
+            "color": "#76B7B2",
+            "cancer_codes": [
+                "PRAD",
+                "TGCT"
+            ]
+        },
+        {
+            "group_name": "Digestive / Gastrointestinal System",
+            "color": "#59A14F",
+            "cancer_codes": [
+                "CHOL",
+                "COAD",
+                "ESCA",
+                "LIHC",
+                "STAD"
+            ]
+        },
+        {
+            "group_name": "Nervous System",
+            "color": "#EDC948",
+            "cancer_codes": [
+                "GBMx",
+                "LGGx"
+            ]
+        },
+        {
+            "group_name": "Head and Neck",
+            "color": "#B07AA1",
+            "cancer_codes": [
+                "HNSC"
+            ]
+        },
+        {
+            "group_name": "Respiratory System / Thoracic",
+            "color": "#FF9DA7",
+            "cancer_codes": [
+                "LUAD",
+                "LUSC",
+                "MESO"
+            ]
+        },
+        {
+            "group_name": "Skin",
+            "color": "#9C755F",
+            "cancer_codes": [
+                "SKCM"
+            ]
+        }
+    ]
+}

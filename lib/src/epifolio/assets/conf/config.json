@@ -1,0 +1,11 @@
+{
+  "NMF_DATA_DIRECTORY": ".",
+  "NMF_FILE_PATTERN": "*.csv",
+  "DEFAULT_CSV_FILENAME": "data/all_H_component_contributions.csv",
+  "JSON_FILENAME_CANCER_TYPE_COLORS": "conf/cancer_type_color_map.json",
+  "JSON_FILENAME_COMPONENT_COLORS": "conf/nmf_component_color_map.json",
+  "JSON_FILENAME_ORGAN_SYSTEM": "conf/tissue_source_tcga.json",
+  "JSON_FILENAME_EMBRYONIC_LAYER": "conf/emb.json",
+  "JSON_FILENAME_VOCAB": "conf/vocab.json",
+  "UMAP_FILENAME": "data/umap.parquet"
+}

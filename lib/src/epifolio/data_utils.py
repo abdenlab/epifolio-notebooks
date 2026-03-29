@@ -15,6 +15,7 @@ import pandas as pd
 # Config helpers
 # ---------------------------------------------------------------------------
 
+
 def load_cfg(path: str | Path = "config.json") -> dict:
     """Read a JSON configuration file."""
     with open(path) as f:
@@ -30,7 +31,11 @@ def resolve_analysis_cfg(
     If the config has an ``ANALYSES`` dict, the selected analysis's keys
     are merged on top of the base (non-``ANALYSES``) keys.
     """
-    cfg = load_cfg(cfg_or_path) if isinstance(cfg_or_path, (str, Path)) else dict(cfg_or_path)
+    cfg = (
+        load_cfg(cfg_or_path)
+        if isinstance(cfg_or_path, (str, Path))
+        else dict(cfg_or_path)
+    )
     analyses = cfg.get("ANALYSES")
     if not analyses:
         return cfg
@@ -59,6 +64,7 @@ def get_available_analyses(cfg_path: str | Path = "conf/config.json") -> list[st
 # DataFrame / column helpers
 # ---------------------------------------------------------------------------
 
+
 @lru_cache(maxsize=64)
 def _read_csv_cached(filepath: str) -> pd.DataFrame:
     return pd.read_csv(filepath)
@@ -69,7 +75,11 @@ def _get_dataframe(filepath: Path) -> pd.DataFrame:
 
 
 _SAMPLE_ID_CANDIDATES = [
-    "sample_id", "Sample_ID", "Sample ID", "sample", "Unnamed: 0",
+    "sample_id",
+    "Sample_ID",
+    "Sample ID",
+    "sample",
+    "Unnamed: 0",
 ]
 
 
@@ -103,13 +113,15 @@ def _extract_component_columns(
     sample_id_column: str = "sample_id",
 ) -> list[str]:
     comp_like = [
-        c for c in df.columns
+        c
+        for c in df.columns
         if c != sample_id_column and _component_index(c) is not None
     ]
     if comp_like:
         return comp_like
     return [
-        c for c in df.columns
+        c
+        for c in df.columns
         if c != sample_id_column and pd.api.types.is_numeric_dtype(df[c])
     ]
 
@@ -135,6 +147,7 @@ def _canonicalize_component_columns(
 # Core data loaders
 # ---------------------------------------------------------------------------
 
+
 def _resolve_cancer_types(
     sample_ids: list[str],
     cfg: dict,
@@ -146,16 +159,16 @@ def _resolve_cancer_types(
 
     meta_df = _get_dataframe(Path(metadata_path))
     meta_df, meta_sid_col = _standardize_sample_id_column(
-        meta_df, cfg.get("ANALYSIS_METADATA_SAMPLE_ID_COLUMN", "sample_id"),
+        meta_df,
+        cfg.get("ANALYSIS_METADATA_SAMPLE_ID_COLUMN", "sample_id"),
     )
     cancer_col = cfg.get("ANALYSIS_CANCER_TYPE_COLUMN", "cancer_type")
     if cancer_col not in meta_df.columns:
         return [sid[:4] for sid in sample_ids]
 
-    lookup = (
-        meta_df.drop_duplicates(subset=[meta_sid_col])
-        .set_index(meta_sid_col)[cancer_col]
-    )
+    lookup = meta_df.drop_duplicates(subset=[meta_sid_col]).set_index(meta_sid_col)[
+        cancer_col
+    ]
     return [
         str(lookup.get(sid, "Unknown")) if pd.notna(lookup.get(sid)) else "Unknown"
         for sid in sample_ids
@@ -194,35 +207,3 @@ def load_h_matrix(
         H = df[sorted_cols].values
 
     return H, sample_ids, sorted_cols
-
-
-def load_umap(
-    cfg: dict,
-    sample_ids: list[str],
-    cancer_types: list[str],
-) -> pd.DataFrame:
-    """Load UMAP coordinates aligned to *sample_ids*."""
-    umap_path = Path(cfg.get("UMAP_FILENAME", "data/umap.parquet"))
-
-    if umap_path.suffix.lower() == ".parquet":
-        umap_df = pd.read_parquet(umap_path)
-    else:
-        umap_df = pd.read_csv(umap_path)
-
-    rename = {}
-    if "UMAP_1" in umap_df.columns:
-        rename["UMAP_1"] = "UMAP-1"
-    if "UMAP_2" in umap_df.columns:
-        rename["UMAP_2"] = "UMAP-2"
-    umap_df = umap_df.rename(columns=rename)
-    umap_df, sid_col = _standardize_sample_id_column(umap_df, "sample_id")
-
-    aligned = (
-        umap_df.drop_duplicates(subset=[sid_col])
-        .set_index(sid_col)
-        .reindex(sample_ids)
-        .reset_index()
-    )
-    aligned["sample_id"] = aligned["sample_id"].astype(str)
-    aligned["cancer_type"] = cancer_types
-    return aligned

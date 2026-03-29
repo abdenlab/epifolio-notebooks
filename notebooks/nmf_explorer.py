@@ -23,39 +23,131 @@ def _():
     import marimo as mo
     import numpy as np
     import pandas as pd
+
     return mo, np, pd
 
 
 @app.cell
 def _(mo):
-    mo.md("# Explore cancer cCRE signatures")
+    mo.md("""
+    # Explore cancer cCRE signatures
+    """)
     return
 
 
 @app.cell
 def _():
     from epifolio import ASSETS
-    from epifolio.data_utils import load_cfg, load_h_matrix, load_umap
+    from epifolio.data_utils import load_h_matrix
     from epifolio.color_utils import load_color_map, resolve_cancer_colors
-    from epifolio.heatmap import create_heatmap_figure
-    from epifolio.scatter import (
-        create_umap_scatter,
-        create_grandscatter_widget,
-    )
+    from epifolio.heatmap import create_heatmap_figure, load_grouping_data
 
-    CFG_PATH = str(ASSETS / "conf" / "config.json")
     return (
         ASSETS,
-        CFG_PATH,
-        create_grandscatter_widget,
         create_heatmap_figure,
-        create_umap_scatter,
-        load_cfg,
         load_color_map,
+        load_grouping_data,
         load_h_matrix,
-        load_umap,
         resolve_cancer_colors,
     )
+
+
+@app.cell
+def _(
+    ASSETS,
+    load_color_map,
+    load_grouping_data,
+    load_h_matrix,
+    np,
+    pd,
+    resolve_cancer_colors,
+):
+    H, sample_ids, comp_names = load_h_matrix(
+        ASSETS / "data" / "all_H_component_contributions.csv"
+    )
+    cancer_types = [sid[:4] for sid in sample_ids]
+
+    cancer_colors = resolve_cancer_colors(
+        cancer_types,
+        load_color_map(ASSETS / "conf" / "cancer_type_color_map.json"),
+    )
+    comp_color_map = load_color_map(ASSETS / "conf" / "nmf_component_color_map.json")
+    organ_system_data = load_grouping_data(ASSETS / "conf" / "tissue_source_tcga.json")
+    embryonic_layer_data = load_grouping_data(ASSETS / "conf" / "emb.json")
+
+    df = pd.DataFrame(H.astype(np.float32), columns=comp_names)
+    df["cancer_type"] = cancer_types
+    umap_df = pd.read_parquet(ASSETS / "data" / "umap.parquet")
+    return (
+        H,
+        cancer_colors,
+        cancer_types,
+        comp_color_map,
+        comp_names,
+        df,
+        embryonic_layer_data,
+        organ_system_data,
+        sample_ids,
+        umap_df,
+    )
+
+
+@app.cell
+def _(mo):
+    get_selection, set_selection = mo.state(None)
+    return get_selection, set_selection
+
+
+@app.cell
+def _(cancer_colors, set_selection, umap_df):
+    import jscatter
+
+    umap = (
+        jscatter.Scatter(
+            data=umap_df,
+            x="UMAP-1",
+            y="UMAP-2",
+            color_by="Cancer Type",
+            color_map=cancer_colors,
+            height=600,
+            width=600,
+            lasso_callback=True,
+            selection_mode="lasso",
+        )
+        .size(default=5)
+        .axes(grid=True, labels=True)
+        .tooltip(
+            enable=True,
+            properties=["Sample ID", "Cancer Type"],
+        )
+        .widget
+    )
+
+    def _on_umap_selection(_):
+        sel = umap.selection.tolist()
+        set_selection(sel if len(sel) > 0 else None)
+
+    umap.observe(_on_umap_selection, names=["selection"])
+    return (umap,)
+
+
+@app.cell
+def _(cancer_colors, comp_names, df, set_selection):
+    import grandscatter
+
+    gs = grandscatter.Scatter(
+        df,
+        axis_fields=comp_names,
+        label_field="cancer_type",
+        label_colors=cancer_colors,
+    )
+
+    def _on_gs_selection(_):
+        sel = gs.selected_points
+        set_selection(sel if sel else None)
+
+    gs.observe(_on_gs_selection, names=["selected_points"])
+    return (gs,)
 
 
 @app.cell
@@ -69,185 +161,71 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
-    shared_selected_ids, set_shared_selected_ids = mo.state([])
-    return shared_selected_ids, set_shared_selected_ids
-
-
-# ---------------------------------------------------------------------------
-# Data loading
-# ---------------------------------------------------------------------------
-
-
-@app.cell
-def _(CFG_PATH, load_cfg, load_color_map, load_h_matrix, load_umap, resolve_cancer_colors, pd):
-    from pathlib import Path
-
-    cfg = load_cfg(CFG_PATH)
-    cfg_dir = Path(CFG_PATH).parent.parent  # assets root
-
-    csv_path = cfg_dir / cfg.get("DEFAULT_CSV_FILENAME", "data/all_H_component_contributions.csv")
-    H, sample_ids, comp_names = load_h_matrix(csv_path)
-
-    cancer_types = [sid[:4] for sid in sample_ids]
-    cancer_colors = resolve_cancer_colors(
-        cancer_types,
-        load_color_map(str(cfg_dir / "conf" / "cancer_type_color_map.json")),
-    )
-
-    umap_df = load_umap(
-        {**cfg, "UMAP_FILENAME": str(cfg_dir / cfg.get("UMAP_FILENAME", "data/umap.parquet"))},
+def _(
+    H,
+    active_selection,
+    cancer_colors,
+    cancer_types,
+    comp_color_map,
+    create_heatmap_figure,
+    embryonic_layer_data,
+    mo,
+    organ_system_data,
+    sample_ids,
+    sort_method,
+):
+    fig = create_heatmap_figure(
+        H,
         sample_ids,
         cancer_types,
-    )
-    return H, cancer_colors, cancer_types, cfg, cfg_dir, comp_names, csv_path, sample_ids, umap_df, Path
-
-
-# ---------------------------------------------------------------------------
-# UMAP scatter (jscatter with lasso selection)
-# ---------------------------------------------------------------------------
-
-
-@app.cell
-def _(cancer_colors, create_umap_scatter, umap_df):
-    scatter = create_umap_scatter(umap_df, cancer_colors)
-    return (scatter,)
-
-
-@app.cell
-def _(mo, scatter):
-    scatter_widget = mo.ui.anywidget(scatter.widget)
-    return (scatter_widget,)
-
-
-@app.cell
-def _(np):
-    def normalize_selection(selection):
-        if selection is None:
-            return []
-        if isinstance(selection, np.ndarray):
-            values = selection.tolist()
-        else:
-            values = list(selection)
-        return [int(v) for v in values]
-    return (normalize_selection,)
-
-
-@app.cell
-def _(normalize_selection, scatter_widget, set_shared_selected_ids):
-    _incoming = normalize_selection(scatter_widget.selection)
-
-    def _update(current):
-        return current if _incoming == current else _incoming
-
-    set_shared_selected_ids(_update)
-    return
-
-
-# ---------------------------------------------------------------------------
-# Heatmap
-# ---------------------------------------------------------------------------
-
-
-@app.cell
-def _(CFG_PATH, create_heatmap_figure, csv_path, mo, shared_selected_ids, sort_method):
-    _selection = shared_selected_ids()
-    _selected = list(_selection) if _selection else None
-    _caption = (
-        f"Showing {len(_selection)} selected samples."
-        if _selected
-        else "Showing all samples. Use the lasso tool on the scatter to filter."
+        sort_method=sort_method.value,
+        comp_color_map=comp_color_map,
+        cancer_color_map=cancer_colors,
+        organ_system_data=organ_system_data,
+        embryonic_layer_data=embryonic_layer_data,
+        selection=active_selection,
     )
 
-    _fig = create_heatmap_figure(
-        CFG_PATH,
-        sort_method.value,
-        csv_path=csv_path,
-        selection=_selected,
-    )
-    heatmap_plot = mo.ui.plotly(_fig)
-    caption = _caption
-    return caption, heatmap_plot
-
-
-# ---------------------------------------------------------------------------
-# Grandscatter (16-D NMF proportion explorer)
-# ---------------------------------------------------------------------------
+    heatmap_widget = mo.ui.plotly(fig)
+    return (heatmap_widget,)
 
 
 @app.cell
-def _(CFG_PATH, create_grandscatter_widget, mo):
-    try:
-        _gs = create_grandscatter_widget(CFG_PATH)
-        grandscatter_plot = mo.ui.anywidget(_gs)
-        gs_widget = _gs
-    except Exception as e:
-        grandscatter_plot = mo.md(
-            f"**Grandscatter error:** {type(e).__name__}: {str(e)[:200]}"
-        )
-        gs_widget = None
-    return grandscatter_plot, gs_widget
-
-
-@app.cell
-def _(gs_widget, normalize_selection, set_shared_selected_ids):
-    if gs_widget is not None:
-        _incoming = normalize_selection(gs_widget.selected_points)
-
-        def _update(current):
-            return current if _incoming == current else _incoming
-
-        set_shared_selected_ids(_update)
-    return
-
-
-@app.cell
-def _(gs_widget, normalize_selection, shared_selected_ids):
-    _target = shared_selected_ids()
-    if gs_widget is not None:
-        _current = normalize_selection(gs_widget.selected_points)
-        if _current != _target:
-            gs_widget.selected_points = _target
-    return
-
-
-@app.cell
-def _(normalize_selection, scatter_widget, shared_selected_ids):
-    _target = shared_selected_ids()
-    _current = normalize_selection(scatter_widget.selection)
-    if _current != _target:
-        scatter_widget.selection = _target
-    return
-
-
-# ---------------------------------------------------------------------------
-# Layout
-# ---------------------------------------------------------------------------
-
-
-@app.cell
-def _(caption, grandscatter_plot, heatmap_plot, mo, scatter_widget, shared_selected_ids, sort_method, umap_df):
-    _selection = shared_selected_ids()
-    _selected_df = (
-        umap_df.iloc[_selection].reset_index(drop=True)
-        if _selection
+def _(get_selection, gs, mo, umap, umap_df):
+    active_selection = get_selection()
+    umap.selection = active_selection or []
+    gs.selected_points = active_selection or []
+    table = mo.ui.table(
+        umap_df.iloc[active_selection].reset_index(drop=True)
+        if active_selection
         else umap_df
     )
+    return active_selection, table
 
-    mo.vstack([
-        sort_method,
-        mo.md(f"**{caption}**"),
-        mo.hstack([scatter_widget, heatmap_plot], widths=[0.4, 0.6]),
-        mo.md("### Multi-Dimensional NMF Proportions"),
-        mo.md(
-            "_Drag axis handles to rotate and explore the 16-dimensional NMF "
-            "proportion space. Use the lasso tool to select samples and filter "
-            "the heatmap & table._"
-        ),
-        grandscatter_plot,
-        mo.md("### Selected Samples"),
-        mo.ui.table(_selected_df),
-    ])
+
+@app.cell(hide_code=True)
+def _(active_selection, gs, heatmap_widget, mo, sort_method, table, umap):
+    _caption = (
+        f"Showing {len(active_selection)} selected samples."
+        if active_selection
+        else "Showing all samples. Use the lasso tool on a scatter to filter."
+    )
+
+    mo.vstack(
+        [
+            sort_method,
+            mo.md(f"**{_caption}**"),
+            heatmap_widget,
+            mo.md("### Embeddings"),
+            mo.md(
+                "_Use the lasso tool on either scatter to select samples and "
+                "filter the heatmap & table._"
+            ),
+            mo.hstack([umap, gs], widths=[0.5, 0.5]),
+            mo.md("### Selected Samples"),
+            table,
+        ]
+    )
     return
 
 

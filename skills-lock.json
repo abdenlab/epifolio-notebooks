@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "add-molab-badge": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "computedHash": "a77dbd15988d3a2c167139e7c9871e48ec866c3b9556631a2bd74d0fc5b6747c"
+    },
+    "anywidget-generator": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "computedHash": "93a512dc9870809902459881640b041afe5fe460774e9b49a212d8d799922ab5"
+    },
+    "jupyter-to-marimo": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "computedHash": "08a26b09bb992d3056fe8fe30bf29cd11b89dd1539f8bb298b8d85ca728b15c2"
+    },
+    "marimo-batch": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "computedHash": "b697e72139093c633f2b34b56e0b02c69c5ebff53e4ebdd3c0fbe033a2af5f84"
+    },
+    "marimo-notebook": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "computedHash": "17f16170d948dd845121a49263493b534588db66457c9c47b40ad3868923cba7"
+    },
+    "marimo-pair": {
+      "source": "marimo-team/marimo-pair",
+      "sourceType": "github",
+      "computedHash": "0e50ef503945d5e8bf94f55ac7b504949e5cbd23ad5c052f1e932e007d4b1c04"
+    }
+  }
+}

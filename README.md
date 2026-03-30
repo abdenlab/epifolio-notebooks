@@ -1,17 +1,13 @@
 # epifolio-notebooks
 
-## Context
-
 This is a standalone GitHub repo for developing and deploying Marimo notebooks that explore cancer regulatory genomics data.
 
-### Three use cases to support:
+Three use cases to support:
 1. **Development**: Edit notebooks + shared modules locally
 2. **Molab deployment**: Single `.py` file bootstraps its own modules/data
 3. **Local user launch**: `uvx marimo run <notebook>` with zero repo setup
 
----
-
-## Repo Structure: `epifolio-notebooks`
+### Repo Structure
 
 ```
 epifolio-notebooks/
@@ -38,10 +34,6 @@ epifolio-notebooks/
 ├── CLAUDE.md
 └── README.md
 ```
-
----
-
-## Key Design: PEP 723 + installable `epifolio` package
 
 Each notebook is self-contained. Two mechanisms make this work:
 
@@ -88,8 +80,6 @@ Some things can be fetched lazily by `epifolio.data_utils` on first access, cach
 
 In other cases, we may access large assets like Parquet files using appropriate tools like Polars that can handle streaming and random access as needed directly from URLs.
 
----
-
 ## Developer Workflow
 
 ```bash
@@ -118,3 +108,7 @@ In both cases, `uv` reads PEP 723 metadata and installs `epifolio` from the git 
 
 1. Upload `notebooks/nmf_explorer.py` to Molab
 2. PEP 723 handles all dependency installation, including `epifolio` from git
+
+## Agents
+
+We include useful agent skills and a lock file following the open agents skills (skills.sh) framework. You may need to perform the appropriate symlinking for your vendor.

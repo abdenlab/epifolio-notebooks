@@ -79,7 +79,9 @@ def _(cancer_groups_df, meta_df, nmf_cols, nmf_df, np, umap_df):
             how="inner",
         )
         .merge(
-            cancer_groups_df[["group_id", "organ_system", "group_label", "primary_site", "histology"]],
+            cancer_groups_df[
+                ["group_id", "organ_system", "group_label", "primary_site", "histology"]
+            ],
             on="group_id",
             how="left",
         )
@@ -96,8 +98,17 @@ def _(cancer_groups_df, meta_df, nmf_cols, nmf_df, np, umap_df):
 
     # Scatter-friendly dataframe
     scatter_df = df[
-        ["sample", "group_id", "organ_system", "group_label", "primary_site",
-         "histology", "dominant_component", "UMAP1", "UMAP2"]
+        [
+            "sample",
+            "group_id",
+            "organ_system",
+            "group_label",
+            "primary_site",
+            "histology",
+            "dominant_component",
+            "UMAP1",
+            "UMAP2",
+        ]
     ].copy()
     return df, scatter_df
 
@@ -157,7 +168,7 @@ def _(cancer_group_colors, df, nmf_cols, set_selection):
 
     gs = grandscatter.Scatter(
         df,
-        axis_fields=nmf_cols[:min(9, len(nmf_cols))],
+        axis_fields=nmf_cols[: min(9, len(nmf_cols))],
         label_field="group_id",
         label_colors=cancer_group_colors,
     )
@@ -199,32 +210,36 @@ def _(
     from plotly.subplots import make_subplots
 
     # -- ordering --
-    n_samples, n_comps = H[:len(df)].shape
+    n_samples, n_comps = H[: len(df)].shape
 
     _g2o = dict(zip(cancer_groups_df["group_id"], cancer_groups_df["organ_system"]))
     _group_ids = df["group_id"].tolist()
     _organ_systems = [_g2o.get(g, "Unknown") for g in _group_ids]
 
-    comp_order = np.argsort(-H[:len(df)].sum(axis=0))
-    H_ord = H[:len(df)][:, comp_order]
+    comp_order = np.argsort(-H[: len(df)].sum(axis=0))
+    H_ord = H[: len(df)][:, comp_order]
 
     if sort_method.value == "component":
         winners = np.argmax(H_ord, axis=1)
         samp_order = np.lexsort((-H_ord[np.arange(n_samples), winners], winners))
     elif sort_method.value == "group_id":
         winners = np.argmax(H_ord, axis=1)
-        samp_order = np.lexsort((
-            -H_ord[np.arange(n_samples), winners],
-            winners,
-            _group_ids,
-        ))
+        samp_order = np.lexsort(
+            (
+                -H_ord[np.arange(n_samples), winners],
+                winners,
+                _group_ids,
+            )
+        )
     elif sort_method.value == "organ_system":
         winners = np.argmax(H_ord, axis=1)
-        samp_order = np.lexsort((
-            -H_ord[np.arange(n_samples), winners],
-            winners,
-            _organ_systems,
-        ))
+        samp_order = np.lexsort(
+            (
+                -H_ord[np.arange(n_samples), winners],
+                winners,
+                _organ_systems,
+            )
+        )
     else:
         samp_order = np.arange(n_samples)
 
@@ -252,7 +267,9 @@ def _(
         if not x_positions:
             set_selection(None)
             return
-        original_indices = [int(_samp_order[x]) for x in x_positions if x < len(_samp_order)]
+        original_indices = [
+            int(_samp_order[x]) for x in x_positions if x < len(_samp_order)
+        ]
         set_selection(original_indices if original_indices else None)
 
     # -- build figure: main heatmap on top (row 1), selection strip below (row 2) --
@@ -262,7 +279,13 @@ def _(
         shared_xaxes=True,
         row_heights=[0.52, 0.03, 0.06, 0.06, 0.06],
         vertical_spacing=0.04,
-        subplot_titles=("NMF Component Activities", "Selection", "Dominant Component", "Cancer Group", "Organ System"),
+        subplot_titles=(
+            "NMF Component Activities",
+            "Selection",
+            "Dominant Component",
+            "Cancer Group",
+            "Organ System",
+        ),
     )
 
     # Main heatmap (row 1)
@@ -412,7 +435,7 @@ def _(get_selection, gs, mo, scatter_df, umap):
 
 @app.cell(hide_code=True)
 def _(active_selection, gs, heatmap_fig, mo, sort_method, table, umap):
-    _num_selected = len(active_selection) if active_selection else 'all'
+    _num_selected = len(active_selection) if active_selection else "all"
 
     mo.vstack(
         [
@@ -421,12 +444,12 @@ def _(active_selection, gs, heatmap_fig, mo, sort_method, table, umap):
                 f"Use the lasso tool on either scatter to select samples. [**{_num_selected}** samples selected]"
             ),
             mo.hstack([umap, gs], widths=[0.5, 0.5]),
-
             mo.md("### Component scores"),
-            mo.md(f"Use box-select to select samples. [**{_num_selected}** samples selected]"),
+            mo.md(
+                f"Use box-select to select samples. [**{_num_selected}** samples selected]"
+            ),
             sort_method,
             heatmap_fig,
-        
             mo.md("### Selected samples"),
             table,
         ]

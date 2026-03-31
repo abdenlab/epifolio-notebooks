@@ -30,8 +30,7 @@ epifolio-notebooks/
 │               ├── conf/          # JSON configs, color maps, vocabularies
 │               └── data/          # Small datasets (<~20MB total)
 ├── pyproject.toml                  # Dev dependencies + editable install of lib/
-├── .python-version                 # 3.11
-├── CLAUDE.md
+├── .python-version
 └── README.md
 ```
 

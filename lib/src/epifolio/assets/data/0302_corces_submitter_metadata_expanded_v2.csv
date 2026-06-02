@@ -1,0 +1,405 @@
+submitter_id,cohort,exp_cancer,organ_system,primary_site,histology,gdc_disease_type,organ_system_original,germ_layer,histology_class,histology_subtype
+TCGA-OR-A5J2,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-OR-A5J3,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-OR-A5J6,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-OR-A5J9,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-OR-A5JZ,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-OR-A5K8,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-OR-A5KX,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-PA-A5YG,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-PK-A5H8,ACC,ACC,Endocrine,Adrenal gland,Adenocarcinoma,Adenomas and Adenocarcinomas,Endocrine System,Mesoderm,Carcinoma,Adrenocortical
+TCGA-BL-A13J,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-BL-A3JM,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-CF-A1HR,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-CF-A3MI,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-CU-A3YL,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-DK-A1AD,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-FD-A3SR,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-GD-A3OQ,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-GV-A3JW,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-H4-A2HO,BLCA,BLCA,Genitourinary,Bladder,Transitional cell carcinoma,Transitional Cell Papillomas and Carcinomas,Urinary System,Endoderm,Carcinoma,Transitional cell
+TCGA-3C-AALJ,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-4H-AAAK,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0CX,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0ES,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0ET,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0EV,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0EW,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0EX,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0EY,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0SV,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0SW,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0SX,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0T4,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0T5,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0T6,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0T7,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YC,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YD,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YF,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YG,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YH,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YJ,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YK,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YL,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A0YT,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A2-A4RX,BRCA,BRCA,Breast,Breast,Carcinoma,Complex Epithelial Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A7-A0CH,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A7-A0D9,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A7-A13E,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A7-A13F,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A8-A06N,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A8-A08J,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-A8-A094,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A03L,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A03N,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A0J5,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A0J8,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A0JB,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A0JG,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A0JM,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A124,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A12D,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AO-A12F,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AQ-A04L,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AR-A0TP,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AR-A0TV,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AR-A0U0,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-AR-A0U4,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0B1,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0B5,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0BA,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0BZ,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0C1,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0DL,BRCA,BRCA,Breast,Breast,Carcinoma,Complex Epithelial Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0DP,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0DV,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0E0,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0EE,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A0HP,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-BH-A1EV,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12K,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12M,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12O,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12Q,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12T,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12U,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12V,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A12Y,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A130,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A133,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A137,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-C8-A8HR,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-D8-A13Z,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-S3-AA0Z,BRCA,BRCA,Breast,Breast,Carcinoma,Ductal and Lobular Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Adenocarcinoma
+TCGA-EA-A3HS,CESC,CESC,Gynecologic,Cervix,Squamous cell carcinoma,Squamous Cell Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Squamous cell
+TCGA-EA-A3HT,CESC,CESC,Gynecologic,Cervix,Squamous cell carcinoma,Squamous Cell Neoplasms,Reproductive (Female),Ectoderm,Carcinoma,Squamous cell
+TCGA-3X-AAVA,CHOL,CHOL,GI,Bile duct,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-W6-AA0T,CHOL,CHOL,GI,Bile duct,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-W7-A93N,CHOL,CHOL,GI,Bile duct,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-ZH-A8Y5,CHOL,CHOL,GI,Bile duct,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-ZH-A8Y7,CHOL,CHOL,GI,Bile duct,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-3L-AA1B,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-4N-A93T,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-A6-A565,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-A6-A566,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-A6-A567,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-A6-A56B,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A00E,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A00J,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A00L,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A00Q,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A00W,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A010,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A01D,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A01P,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A01R,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A01S,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A01X,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A022,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A024,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A02E,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AA-A02F,COAD,COAD,GI,Colon,Adenocarcinoma,"Epithelial Neoplasms, NOS",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AD-6889,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AY-A54L,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AY-A69D,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AY-A71X,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-AY-A8YK,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-DM-A28G,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A50U,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A50V,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A5IV,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A6GA,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A6GC,COAD,COAD,GI,Colon,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A8F7,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NH-A8F8,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-QG-A5YV,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-QG-A5YX,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-QL-A97D,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-SS-A7HO,COAD,COAD,GI,Colon,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-IC-A6RE,ESCA,ESCA_ADENO,GI,Esophagus,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-IG-A4QS,ESCA,ESCA_ADENO,GI,Esophagus,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-IG-A7DP,ESCA,ESCA_ADENO,GI,Esophagus,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-L5-A4OE,ESCA,ESCA_ADENO,GI,Esophagus,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-L7-A6VZ,ESCA,ESCA_ADENO,GI,Esophagus,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-M9-A5M8,ESCA,ESCA_ADENO,GI,Esophagus,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-IG-A3YA,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-IG-A4P3,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-IG-A51D,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-IG-A625,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A49O,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A49W,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A4A2,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A4A5,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A4MR,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A7HX,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A8HZ,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-LN-A9FQ,ESCA,ESCA_SCC,GI,Esophagus,Squamous cell carcinoma,Squamous Cell Neoplasms,Digestive System,Endoderm,Carcinoma,Squamous cell
+TCGA-06-A5U0,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-06-A6S1,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-06-A7TK,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-06-A7TL,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-4W-AA9S,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-76-6656,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-81-5910,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-OX-A56R,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-RR-A6KB,GBM,GBM,CNS,Brain,Glioma,Gliomas,Nervous System,Ectoderm,Glioma,Glioblastoma
+TCGA-BA-A4IH,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-BA-A8YP,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-CN-A49B,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-CV-A468,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-D6-A6EP,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-F7-A624,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-H7-A76A,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-KU-A66S,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-KU-A6H7,HNSC,HNSC,Head and Neck,Head and neck,Squamous cell carcinoma,Squamous Cell Neoplasms,Head and Neck,Ectoderm,Carcinoma,Squamous cell
+TCGA-3Z-A93Z,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-6D-AA2E,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B2-A4SR,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A54E,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A54F,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A54G,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A54H,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A54J,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A54K,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-B8-A8YJ,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-CJ-5671,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-CJ-5677,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-CJ-5679,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-DV-A4VX,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-GK-A6C7,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-MM-A564,KIRC,KIRC,Genitourinary,Kidney,Clear cell carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Clear cell
+TCGA-2K-A9WE,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-4A-A93X,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-4A-A93Y,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-B1-A47N,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-B1-A654,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-B9-A44B,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-B9-A5W8,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-B9-A5W9,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-B9-A8YI,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-F9-A7Q0,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-F9-A7VF,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-F9-A8NY,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-GL-A9DC,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-HE-A5NH,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-HE-A5NI,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-HE-A5NJ,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-HE-A5NK,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-IA-A40U,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-IA-A40X,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-KV-A74V,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-P4-A5E6,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-P4-A5EA,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-P4-A5EB,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-P4-A5ED,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-P4-AAVL,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-PJ-A8JU,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-Q2-A5QZ,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PJ,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PK,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PL,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PM,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PP,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PQ,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-UZ-A9PV,KIRP,KIRP,Genitourinary,Kidney,Papillary carcinoma,Adenomas and Adenocarcinomas,Urinary System,Mesoderm,Carcinoma,Papillary
+TCGA-E1-A7YI,LGG,LGG_ASTRO,CNS,Brain,Astrocytoma,Gliomas,Nervous System,Ectoderm,Glioma,Astrocytoma
+TCGA-P5-A72W,LGG,LGG_ASTRO,CNS,Brain,Astrocytoma,Gliomas,Nervous System,Ectoderm,Glioma,Astrocytoma
+TCGA-P5-A72X,LGG,LGG_ASTRO,CNS,Brain,Astrocytoma,Gliomas,Nervous System,Ectoderm,Glioma,Astrocytoma
+TCGA-P5-A735,LGG,LGG_ASTRO,CNS,Brain,Astrocytoma,Gliomas,Nervous System,Ectoderm,Glioma,Astrocytoma
+TCGA-DB-A75K,LGG,LGG_MIXED,CNS,Brain,Mixed glioma,Gliomas,Nervous System,Ectoderm,Glioma,LGG-Mixed
+TCGA-DU-6395,LGG,LGG_MIXED,CNS,Brain,Mixed glioma,Gliomas,Nervous System,Ectoderm,Glioma,LGG-Mixed
+TCGA-FG-A4MU,LGG,LGG_MIXED,CNS,Brain,Mixed glioma,Gliomas,Nervous System,Ectoderm,Glioma,LGG-Mixed
+TCGA-FG-A4MY,LGG,LGG_MIXED,CNS,Brain,Mixed glioma,Gliomas,Nervous System,Ectoderm,Glioma,LGG-Mixed
+TCGA-P5-A77X,LGG,LGG_MIXED,CNS,Brain,Mixed glioma,Gliomas,Nervous System,Ectoderm,Glioma,LGG-Mixed
+TCGA-DU-5870,LGG,LGG_OLIGO,CNS,Brain,Oligodendroglioma,Gliomas,Nervous System,Ectoderm,Glioma,Oligodendroglioma
+TCGA-DU-6407,LGG,LGG_OLIGO,CNS,Brain,Oligodendroglioma,Gliomas,Nervous System,Ectoderm,Glioma,Oligodendroglioma
+TCGA-F6-A8O3,LGG,LGG_OLIGO,CNS,Brain,Oligodendroglioma,Gliomas,Nervous System,Ectoderm,Glioma,Oligodendroglioma
+TCGA-W9-A837,LGG,LGG_OLIGO,CNS,Brain,Oligodendroglioma,Gliomas,Nervous System,Ectoderm,Glioma,Oligodendroglioma
+TCGA-BC-A10S,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A10T,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A10U,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A10W,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A10X,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A3KF,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A5W4,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-BC-A8YO,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-CC-A123,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-CC-A7IF,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-DD-AAC8,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-DD-AACB,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-DD-AACI,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-DD-AACL,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-G3-AAV0,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-LG-A9QC,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-LG-A9QD,LIHC,LIHC,GI,Liver,Hepatocellular carcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Hepatocellular
+TCGA-44-3918,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-44-6146,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-44-A47F,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-49-AARO,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-4B-A93V,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-73-A9RS,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-86-A4D0,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-86-A4P7,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-86-A4P8,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-91-A4BC,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-91-A4BD,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-93-A4JN,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Acinar Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-93-A4JO,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-93-A4JQ,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Acinar Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-L4-A4E6,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-L9-A8F4,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-MP-A4SV,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-MP-A4T4,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-MP-A4T7,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-MP-A4TE,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-MP-A4TF,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-NJ-A4YG,LUAD,LUAD,Thoracic,Lung,Adenocarcinoma,Adenomas and Adenocarcinomas,Respiratory System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-33-A4WN,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-37-A5EM,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-63-A5MR,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-77-A5G6,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-85-A4CL,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-85-A4CN,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-85-A4JB,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-85-A4QR,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-85-A50M,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-85-A512,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-98-A53A,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-98-A53J,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-J1-A4AH,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-MF-A522,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-O2-A52N,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-XC-AA0X,LUSC,LUSC,Thoracic,Lung,Squamous cell carcinoma,Squamous Cell Neoplasms,Respiratory System,Endoderm,Carcinoma,Squamous cell
+TCGA-3U-A98E,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-3U-A98I,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-LK-A4NW,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-LK-A4NY,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-LK-A4O6,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-MQ-A4KX,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-SH-A9CU,MESO,MESO,Thoracic,Pleura,Mesothelioma,Mesothelial Neoplasms,Respiratory System,Mesoderm,Mesothelioma,Mesothelioma
+TCGA-QT-A5XJ,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-QT-A5XM,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-QT-A5XN,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-QT-A69Q,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-RM-A68W,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-RT-A6YA,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-RW-A8AZ,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-TT-A6YP,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-WB-A818,PCPG,PCPG,Endocrine,Adrenal gland,Paraganglioma,Paragangliomas and Glomus Tumors,Endocrine System,Ectoderm,Paraganglioma,Paraganglioma
+TCGA-EJ-7218,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Acinar Cell Neoplasms,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-7318,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Acinar Cell Neoplasms,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A46B,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A46D,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A46E,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A46F,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A46G,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Ductal and Lobular Neoplasms,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A46H,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A65B,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A65F,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A7NG,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A7NM,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Ductal and Lobular Neoplasms,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A8FN,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-EJ-A8FP,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Ductal and Lobular Neoplasms,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-KC-A4BV,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-SU-A7E7,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-VN-A88K,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-VP-A875,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-YL-A8HJ,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-YL-A8SB,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-YL-A8SL,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-YL-A8SP,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-YL-A9WK,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-ZG-A9L0,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-ZG-A9L1,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-ZG-A9L2,PRAD,PRAD,Genitourinary,Prostate,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Male),Endoderm,Carcinoma,Adenocarcinoma
+TCGA-D3-A8GM,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-D3-A8GP,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-D9-A1JW,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-D9-A6EA,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-D9-A6EC,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-DA-A95W,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-DA-A95Y,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-EB-A24C,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-EB-A3XF,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-EB-A3Y6,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-EB-A5KH,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-EB-A5SH,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-XV-AAZY,SKCM,SKCM,Skin,Skin,Melanoma,Nevi and Melanomas,Integumentary,Ectoderm,Melanoma,Melanoma
+TCGA-BR-A452,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4CR,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4CS,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4IY,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J1,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J2,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J4,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J5,STAD,STAD,GI,Stomach,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J6,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J7,STAD,STAD,GI,Stomach,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4J9,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-BR-A4QL,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-CD-A486,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-CD-A48C,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-D7-A4YX,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-D7-A6EZ,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-HF-A5NB,STAD,STAD,GI,Stomach,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-VQ-A8PJ,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-VQ-A91E,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-VQ-A91W,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-VQ-A94O,STAD,STAD,GI,Stomach,Adenocarcinoma,Adenomas and Adenocarcinomas,Digestive System,Endoderm,Carcinoma,Adenocarcinoma
+TCGA-2G-AAFM,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-2G-AAFO,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-2G-AAGS,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-2G-AAH8,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-2G-AAKG,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-4K-AA1I,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-XE-AANI,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-XE-AAOD,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-XE-AAOF,TGCT,TGCT,Genitourinary,Testis,Germ cell tumor,Germ Cell Neoplasms,Reproductive (Male),Mesoderm,Germ cell tumor,Germ cell tumor
+TCGA-4C-A93U,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Squamous Cell Neoplasms,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A0Z0,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A0Z2,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A0Z3,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A0Z5,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A0ZA,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A0ZC,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A192,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A290,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-BJ-A3PU,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-CE-A13K,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-DJ-A13M,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-DJ-A13V,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-DJ-A13X,THCA,THCA,Endocrine,Thyroid,Papillary carcinoma,Adenomas and Adenocarcinomas,Endocrine System,Endoderm,Carcinoma,Follicular-derived
+TCGA-AP-A051,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-B5-A0JN,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,"Cystic, Mucinous and Serous Neoplasms",Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-B5-A0JT,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-B5-A0K9,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-B5-A0KB,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-B5-A11Y,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BG-A0M8,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BG-A0MH,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BG-A0MK,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BG-A0MS,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BG-A0RY,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BK-A0C9,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma
+TCGA-BK-A13B,UCEC,UCEC,Gynecologic,Uterus,Adenocarcinoma,Adenomas and Adenocarcinomas,Reproductive (Female),Mesoderm,Carcinoma,Adenocarcinoma

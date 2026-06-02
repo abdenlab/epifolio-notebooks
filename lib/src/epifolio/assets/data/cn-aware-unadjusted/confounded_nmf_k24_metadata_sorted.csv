@@ -1,0 +1,383 @@
+sample_id,source,cancer_type,life_stage,biosample_classification,primary_site,cancer,embryonic_layer,organ_system_group,cancer_type_for_strip
+TCGA-A2-A0T4-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-LN-A49W-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-BH-A0DP-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-93-A4JO-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-A2-A0YG-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A8HR-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-VQ-A94O-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-MP-A4T7-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-BH-A0HP-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BR-A4J4-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-AO-A12D-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-CJ-5671-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-NH-A6GC-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-BH-A0C1-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AO-A0J5-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-3X-AAVA-01A,TCGA,CHOL,unknown,unknown,Bile Duct,cancer,Endoderm,Digestive System,CHOL
+TCGA-A2-A0EV-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YT-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-UZ-A9PV-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-4A-A93X-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-P4-A5E6-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-P4-A5EB-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-HE-A5NI-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B9-A5W8-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B9-A8YI-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-F9-A7VF-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-UZ-A9PL-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B9-A5W9-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-HE-A5NJ-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-HE-A5NK-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-KV-A74V-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-UZ-A9PK-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-GL-A9DC-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-UZ-A9PQ-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-IA-A40X-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-DV-A4VX-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-HE-A5NH-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-IA-A40U-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B1-A47N-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-P4-AAVL-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-F9-A7Q0-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B1-A654-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-4A-A93Y-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B8-A54G-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-Q2-A5QZ-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-UZ-A9PP-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-UZ-A9PM-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B8-A54E-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-B8-A54J-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-B8-A54H-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-3Z-A93Z-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-CJ-5679-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-B2-A4SR-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-F9-A8NY-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B9-A44B-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-GK-A6C7-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-B8-A54F-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-6D-AA2E-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-B8-A8YJ-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-CJ-5677-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-2K-A9WE-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-MM-A564-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-P4-A5EA-01A,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-B8-A54K-01A,TCGA,KIRC,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRC
+TCGA-P4-A5ED-01B,TCGA,KIRP,unknown,unknown,Kidney,cancer,Mesoderm,Urinary System,KIRP
+TCGA-QL-A97D-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AY-A69D-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AA-A01S-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-NH-A50V-01B,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AA-A01X-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-NH-A50U-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-DM-A28G-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AD-6889-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-NH-A8F7-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-QG-A5YX-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-SS-A7HO-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-QG-A5YV-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AY-A71X-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-IC-A6RE-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-NH-A8F8-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AA-A024-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-A6-A56B-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AY-A54L-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AY-A8YK-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-A6-A567-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-3L-AA1B-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AA-A00J-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-A6-A566-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-NH-A6GA-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-NH-A5IV-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-4N-A93T-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AA-A022-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-AA-A01R-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-A6-A565-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-A2-A0EY-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0CX-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A1EV-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A130-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12Q-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YC-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A7-A0CH-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0SW-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-4H-AAAK-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AO-A0J8-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12T-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0T5-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0SV-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12Y-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YD-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A0DV-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A137-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0T7-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0EX-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YF-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A133-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A0B5-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0EW-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AR-A0TV-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A8-A094-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12O-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AO-A03N-01B,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A7-A13F-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YH-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A0EE-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-D8-A13Z-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-W9-A837-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-DU-5870-02A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-P5-A735-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-P5-A77X-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-P5-A72W-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-F6-A8O3-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-DU-6407-02B,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-P5-A72X-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-FG-A4MY-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-E1-A7YI-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-DU-6395-02A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-RR-A6KB-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-06-A7TL-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-06-A5U0-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-DB-A75K-01A,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-06-A7TK-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-OX-A56R-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-FG-A4MU-01B,TCGA,LGG,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,LGG
+TCGA-81-5910-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-76-6656-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-4W-AA9S-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-06-A6S1-01A,TCGA,GBM,unknown,unknown,Brain,cancer,Ectoderm,Nervous System,GBM
+TCGA-VN-A88K-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-YL-A8SP-01B,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-ZG-A9L1-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-YL-A8SL-01B,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-ZG-A9L2-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-ZG-A9L0-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-YL-A8SB-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A7NG-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-7218-01B,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A46B-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A46H-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A7NM-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A46D-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-VP-A875-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A65F-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A46G-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-YL-A8HJ-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-7318-01B,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A8FP-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A46F-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A46E-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-EJ-A8FN-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-KC-A4BV-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-SU-A7E7-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-BC-A10T-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-G3-AAV0-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-DD-AAC8-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-BC-A10U-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-BC-A3KF-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-DD-AACI-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-BC-A8YO-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-CC-A7IF-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-BC-A10W-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-CC-A123-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-BC-A5W4-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-DD-AACB-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-DD-AACL-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-LG-A9QD-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-LG-A9QC-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-BC-A10X-01A,TCGA,LIHC,unknown,unknown,Liver,cancer,Endoderm,Digestive System,LIHC
+TCGA-4B-A93V-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-44-A47F-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-MP-A4TE-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-MP-A4SV-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-L4-A4E6-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-49-AARO-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-93-A4JN-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-86-A4P7-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-MP-A4T4-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-NJ-A4YG-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-91-A4BC-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-86-A4D0-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-44-3918-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-86-A4P8-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-73-A9RS-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-MP-A4TF-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-93-A4JQ-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-L9-A8F4-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-85-A50M-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-LK-A4O6-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-A2-A0ET-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-63-A5MR-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-IG-A7DP-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-DJ-A13X-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-DJ-A13V-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A0Z0-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A0Z3-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A0ZA-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-DJ-A13M-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A0Z5-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A0Z2-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-CE-A13K-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A290-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A3PU-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A0ZC-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-BJ-A192-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-4C-A93U-01A,TCGA,THCA,unknown,unknown,Thyroid,cancer,Endoderm,Endocrine System,THCA
+TCGA-AO-A12F-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A7-A13E-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-S3-AA0Z-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AR-A0TP-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YJ-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AO-A124-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AR-A0U0-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A4RX-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12V-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A0E0-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AR-A0U4-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0SX-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YK-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A2-A0YL-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12K-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-KU-A6H7-06A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-IG-A4P3-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-85-A4JB-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-CV-A468-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-CN-A49B-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-A2-A0ES-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-KU-A66S-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-RM-A68W-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-XC-AA0X-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-BH-A0BA-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-LN-A8HZ-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-B5-A0JT-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-O2-A52N-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-D7-A6EZ-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4J2-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-VQ-A91E-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4J7-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-D7-A4YX-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4IY-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-VQ-A91W-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-L5-A4OE-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-BR-A452-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4J1-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4J5-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-EJ-A65B-01A,TCGA,PRAD,unknown,unknown,Prostate,cancer,Mesoderm,Reproductive (Male),PRAD
+TCGA-85-A512-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-98-A53A-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-85-A4CN-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-77-A5G6-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-BA-A8YP-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-IG-A625-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-85-A4QR-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-LN-A9FQ-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-85-A4CL-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-J1-A4AH-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-98-A53J-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-33-A4WN-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-IG-A3YA-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-BR-A4CR-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-C8-A12M-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A8-A06N-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-C8-A12U-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A0B1-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-BH-A0BZ-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-3C-AALJ-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A8-A08J-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-A7-A0D9-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AO-A0JG-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-AO-A0JM-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-QT-A5XJ-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-AO-A03L-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-LN-A7HX-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-LN-A4MR-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-IG-A51D-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-LN-A49O-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-LN-A4A2-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-H7-A76A-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-EA-A3HS-01A,TCGA,CESC,unknown,unknown,Cervix,cancer,Mesoderm,Reproductive (Female),CESC
+TCGA-EA-A3HT-01A,TCGA,CESC,unknown,unknown,Cervix,cancer,Mesoderm,Reproductive (Female),CESC
+TCGA-37-A5EM-01A,TCGA,LUSC,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUSC
+TCGA-F7-A624-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-BH-A0DL-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-LN-A4A5-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-L7-A6VZ-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-CD-A48C-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-VQ-A8PJ-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-M9-A5M8-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-HF-A5NB-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4J9-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-BR-A4CS-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-CD-A486-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-IG-A4QS-01A,TCGA,ESCA,unknown,unknown,Esophagus,cancer,Endoderm,Digestive System,ESCA
+TCGA-ZH-A8Y5-01A,TCGA,CHOL,unknown,unknown,Bile Duct,cancer,Endoderm,Digestive System,CHOL
+TCGA-AA-A01P-01A,TCGA,COAD,unknown,unknown,Colon,cancer,Endoderm,Digestive System,COAD
+TCGA-44-6146-01A,TCGA,LUAD,unknown,unknown,Lung,cancer,Endoderm,Respiratory System,LUAD
+TCGA-BR-A4J6-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-EB-A24C-01A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-DA-A95Y-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-EB-A5SH-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-D3-A8GP-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-D3-A8GM-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-DA-A95W-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-D9-A6EC-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-EB-A5KH-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-D9-A6EA-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-XV-AAZY-01A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-D9-A1JW-06A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-BG-A0M8-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-AP-A051-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-BG-A0MK-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-BK-A13B-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-B5-A0KB-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-BG-A0RY-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-B5-A11Y-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-BK-A0C9-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-BG-A0MS-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-B5-A0K9-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-B5-A0JN-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-BG-A0MH-01A,TCGA,UCEC,unknown,unknown,Uterus,cancer,Mesoderm,Reproductive (Female),UCEC
+TCGA-SH-A9CU-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-LK-A4NY-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-LK-A4NW-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-3U-A98I-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-3U-A98E-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-MQ-A4KX-01A,TCGA,MESO,unknown,unknown,Pleura,cancer,Mesoderm,Respiratory System,MESO
+TCGA-D6-A6EP-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-XE-AANI-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-A2-A0T6-01A,TCGA,BRCA,unknown,unknown,Breast,cancer,Ectoderm,Reproductive (Female),BRCA
+TCGA-2G-AAH8-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-2G-AAFO-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-XE-AAOD-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-4K-AA1I-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-XE-AAOF-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-2G-AAFM-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-2G-AAKG-05A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-2G-AAGS-01A,TCGA,TGCT,unknown,unknown,Testis,cancer,Mesoderm,Reproductive (Male),TGCT
+TCGA-BL-A3JM-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-BA-A4IH-01A,TCGA,HNSC,unknown,unknown,Head And Neck,cancer,Ectoderm,Head and Neck,HNSC
+TCGA-GV-A3JW-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-CU-A3YL-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-CF-A3MI-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-FD-A3SR-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-H4-A2HO-01C,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-BL-A13J-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-CF-A1HR-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-GD-A3OQ-01A,TCGA,BLCA,unknown,unknown,Bladder,cancer,Endoderm,Urinary System,BLCA
+TCGA-BR-A4QL-01A,TCGA,STAD,unknown,unknown,Stomach,cancer,Endoderm,Digestive System,STAD
+TCGA-EB-A3XF-01A,TCGA,SKCM,unknown,unknown,Skin,cancer,Ectoderm,Integumentary,SKCM
+TCGA-OR-A5J3-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-OR-A5K8-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-OR-A5J9-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-OR-A5KX-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-PA-A5YG-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-OR-A5JZ-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-OR-A5J2-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-OR-A5J6-01A,TCGA,ACC,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,ACC
+TCGA-RT-A6YA-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-WB-A818-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-QT-A5XM-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-TT-A6YP-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-QT-A69Q-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-QT-A5XN-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG
+TCGA-RW-A8AZ-01A,TCGA,PCPG,unknown,unknown,Adrenal Gland,cancer,Ectoderm,Endocrine System,PCPG

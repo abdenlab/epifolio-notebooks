@@ -42,6 +42,7 @@ def _():
     import traitlets
 
     from epifolio import ASSETS
+    from epifolio.data_utils import resolve_asset_path
     from epifolio.itcr_embedding_utils import (
         _categorical_color_lookup as categorical_color_lookup,
         _color_to_hiplot as color_to_hiplot,
@@ -79,6 +80,7 @@ def _():
         mo,
         pd,
         prepare_embedding_for_display,
+        resolve_asset_path,
         subset_by_sample_ids,
         traitlets,
     )
@@ -92,7 +94,7 @@ def _(mo):
 
 
 @app.cell
-def _(ASSETS, json, pd):
+def _(ASSETS, json, pd, resolve_asset_path):
     strip_cfg = json.loads((ASSETS / "conf" / "upt_pub_nmf_config.json").read_text())
     strip_specs = strip_cfg.get("HEATMAP_STRIPS", [])
     strip_label_to_column = {
@@ -101,7 +103,7 @@ def _(ASSETS, json, pd):
     strip_spec_by_column = {spec["column"]: spec for spec in strip_specs}
     strip_id_column = strip_cfg.get("STRIP_METADATA_ID_COLUMN", "submitter_id")
     strip_metadata = (
-        pd.read_csv(ASSETS / strip_cfg["STRIP_METADATA_FILENAME"])
+        pd.read_csv(resolve_asset_path(strip_cfg["STRIP_METADATA_FILENAME"], default_dir="data"))
         .drop_duplicates(subset=[strip_id_column])
         .rename(columns={strip_id_column: "patient_id"})
     )
@@ -110,11 +112,12 @@ def _(ASSETS, json, pd):
 
 
 @app.cell
-def _(ASSETS):
+def _():
+    _EMBEDDINGS = "https://projects.abdenlab.org/itcr/epifolio/embeddings"
     pca_result_options = {
-        "Canonical PCA": ASSETS / "data" / "tcga.atac.pca.sample.pq",
-        "CN-aware adjusted PCA": ASSETS / "data" / "adjusted.pca.sample.pq",
-        "CN-aware confounded PCA": ASSETS / "data" / "confounded.pca.sample.pq",
+        "Canonical PCA": f"{_EMBEDDINGS}/tcga.atac.pca.sample.pq",
+        "CN-aware adjusted PCA": f"{_EMBEDDINGS}/adjusted.pca.sample.pq",
+        "CN-aware confounded PCA": f"{_EMBEDDINGS}/confounded.pca.sample.pq",
     }
     pca_result_labels = list(pca_result_options)
     return pca_result_labels, pca_result_options

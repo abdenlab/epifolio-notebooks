@@ -24,12 +24,12 @@ epifolio-notebooks/
 │           ├── color_utils.py
 │           ├── data_utils.py
 │           ├── heatmap.py
-│   ├── itcr_embedding_utils.py
+│           ├── itcr_embedding_utils.py
 │           ├── sort_utils.py
-│   ├── upt_heatmap.py
-│   └── assets/            # Bundled as package data
+│           ├── upt_heatmap.py
+│           └── assets/            # Bundled as package data
 │               ├── conf/          # JSON configs, color maps, vocabularies
-│               └── data/          # Small datasets (<~20MB total)
+│               └── data/          # Small reference datasets only
 ├── pyproject.toml                  # Dev dependencies + editable install of lib/
 ├── .python-version
 └── README.md
@@ -59,7 +59,7 @@ When run via `uvx marimo run` or on Molab, `uv` reads this and installs all deps
 
 ### 2. Assets as package data
 
-Small assets (configs, color maps, small datasets) are bundled inside the `epifolio` package under `epifolio/assets/`. Notebooks access them via `importlib.resources`:
+Only small, stable assets (configs, color maps, vocabularies, and small reference tables) are bundled inside the `epifolio` package under `epifolio/assets/`. Larger or evolving datasets — NMF/PCA embeddings, sample and clinical metadata — are hosted on the remote server (`https://projects.abdenlab.org/itcr/epifolio/`) and loaded by URL; the loaders in `data_utils.py` accept both packaged-asset paths and remote URLs transparently. Bundled assets are accessed via `importlib.resources`:
 
 ```python
 from importlib.resources import files

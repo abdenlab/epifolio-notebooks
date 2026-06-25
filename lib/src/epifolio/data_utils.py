@@ -19,8 +19,6 @@ _CONFIG_KEYS = {
     "HEATMAP_CSV_FILENAME",
     "UMAP_FILENAME",
     "ANALYSIS_METADATA_FILENAME",
-    "NPY_PROPORTIONS_FILENAME",
-    "GRANDSCATTER_NPY_PROPORTIONS_FILENAME",
     "JSON_FILENAME_CANCER_TYPE_COLORS",
     "JSON_FILENAME_COMPONENT_COLORS",
     "JSON_FILENAME_ORGAN_SYSTEM",
@@ -28,6 +26,10 @@ _CONFIG_KEYS = {
     "JSON_FILENAME_VOCAB",
     "STRIP_METADATA_FILENAME",
 }
+
+# Raw NMF loading columns are named ``NMF1``..``NMFk``; the visualization layer
+# expects row-normalized proportions named ``Comp_0``..``Comp_{k-1}``.
+_RAW_NMF_RE = re.compile(r"(?i)^nmf[_\s-]*(\d+)$")
 
 _SAMPLE_ID_CANDIDATES = [
     "sample_id",
@@ -38,12 +40,24 @@ _SAMPLE_ID_CANDIDATES = [
 ]
 
 
+def _is_url(path: str | Path) -> bool:
+    """True for remote sources (``http://``, ``https://``, ``s3://``, ...)."""
+    return "://" in str(path)
+
+
 def resolve_asset_path(
     path: str | Path,
     *,
     default_dir: str | None = None,
-) -> Path:
-    """Resolve a path against packaged epifolio assets when relative."""
+) -> str | Path:
+    """Resolve a path against packaged epifolio assets when relative.
+
+    Remote URLs are passed through unchanged so loaders can read them
+    directly (pandas reads ``http(s)://`` sources for CSV and parquet).
+    """
+    if _is_url(path):
+        return str(path)
+
     candidate = Path(path)
     if candidate.is_absolute():
         return candidate
@@ -64,6 +78,8 @@ def _normalize_cfg_paths(cfg: dict) -> dict:
     normalized = dict(cfg)
     for key, value in list(normalized.items()):
         if key not in _CONFIG_KEYS or not isinstance(value, (str, Path)):
+            continue
+        if _is_url(value):
             continue
 
         default_dir = "conf" if str(value).endswith(".json") else "data"
@@ -113,12 +129,46 @@ def get_available_analyses(cfg_path: str | Path = "conf/config.json") -> list[st
 
 
 @lru_cache(maxsize=64)
-def _read_csv_cached(filepath: str) -> pd.DataFrame:
-    return pd.read_csv(filepath)
+def _read_table_cached(source: str) -> pd.DataFrame:
+    if source.lower().endswith((".pq", ".parquet")):
+        return pd.read_parquet(source)
+    return pd.read_csv(source)
 
 
 def _get_dataframe(filepath: str | Path) -> pd.DataFrame:
-    return _read_csv_cached(str(resolve_asset_path(filepath))).copy()
+    """Read a CSV or parquet table from a packaged asset or remote URL."""
+    return _read_table_cached(str(resolve_asset_path(filepath, default_dir="data"))).copy()
+
+
+def _coerce_proportions(
+    df: pd.DataFrame,
+    sample_id_column: str = "sample_id",
+) -> pd.DataFrame:
+    """Row-normalize raw NMF loadings into component proportions.
+
+    Remote ``*.nmf.sample.pq`` tables carry raw ``NMF1``..``NMFk`` loadings.
+    The heatmap / grandscatter layers expect proportions named
+    ``Comp_0``..``Comp_{k-1}`` (``NMF{i}`` maps to ``Comp_{i-1}``). Frames that
+    already use ``Comp_*`` columns (legacy bundled CSVs) pass through unchanged.
+    """
+    raw = {
+        col: int(match.group(1))
+        for col in df.columns
+        if (match := _RAW_NMF_RE.match(str(col).strip()))
+    }
+    if len(raw) < 2:
+        return df
+
+    ordered = sorted(raw, key=raw.get)
+    matrix = df[ordered].to_numpy(dtype=float)
+    totals = matrix.sum(axis=1, keepdims=True)
+    totals[totals == 0] = 1.0
+    proportions = matrix / totals
+
+    out = df.drop(columns=ordered).copy()
+    for position, col in enumerate(ordered):
+        out[f"Comp_{raw[col] - 1}"] = proportions[:, position]
+    return out
 
 
 def _standardize_sample_id_column(
@@ -208,69 +258,21 @@ def _resolve_cancer_types(
     ]
 
 
-def load_h_matrix(
-    csv_path: str | Path,
-    *,
-    npy_path: str | Path | None = None,
-    selection: list[int] | None = None,
-) -> tuple[np.ndarray, list[str], list[str]]:
-    """Load an NMF H matrix with sample IDs and component column names."""
-    df = _get_dataframe(csv_path)
-    df, sid_col = _standardize_sample_id_column(df)
-
-    if selection is not None:
-        df = df.iloc[selection]
-
-    sample_ids = df[sid_col].astype(str).tolist()
-    component_columns = _extract_component_columns(df, sid_col)
-    sorted_columns, reorder = _canonicalize_component_columns(component_columns)
-
-    if npy_path is not None:
-        resolved_npy = resolve_asset_path(npy_path)
-        H = np.load(resolved_npy)
-        if selection is not None:
-            H = H[selection]
-        if reorder is not None and len(component_columns) == H.shape[1]:
-            H = H[:, reorder]
-    else:
-        if not component_columns:
-            raise ValueError(f"No component columns found in {csv_path}")
-        H = df[sorted_columns].to_numpy()
-
-    return H, sample_ids, sorted_columns
-
-
-def _resolve_component_source_paths(
-    cfg: dict,
-    *,
-    csv_key: str,
-    npy_key: str,
-    default_csv: str,
-    default_npy: str,
-) -> tuple[Path, Path]:
-    csv_path = resolve_asset_path(
-        cfg.get(csv_key, cfg.get("DEFAULT_CSV_FILENAME", default_csv)),
-        default_dir="data",
-    )
-    npy_path = resolve_asset_path(
-        cfg.get(npy_key, cfg.get("NPY_PROPORTIONS_FILENAME", default_npy)),
-        default_dir="data",
-    )
-    return csv_path, npy_path
-
-
 def _get_prepared_data(
     filepath: str | Path,
     sample_id_column: str = "sample_id",
     selection: list[int] | None = None,
-    npy_path: str | Path | None = None,
     metadata_path: str | Path | None = None,
     metadata_sample_id_column: str = "sample_id",
     cancer_type_column: str = "cancer_type",
 ) -> tuple[np.ndarray, list[str], list[str]]:
-    """Return ``(H, sample_ids, cancer_types)`` ready for visualization."""
-    resolved_csv = resolve_asset_path(filepath, default_dir="data")
-    df = _get_dataframe(resolved_csv)
+    """Return ``(H, sample_ids, cancer_types)`` ready for visualization.
+
+    ``filepath`` may be a CSV/parquet asset or a remote URL holding either raw
+    NMF loadings (``NMF1``..``NMFk``) or proportions (``Comp_*``); raw loadings
+    are row-normalized into proportions by :func:`_coerce_proportions`.
+    """
+    df = _coerce_proportions(_get_dataframe(filepath))
     df, sample_id_column = _standardize_sample_id_column(df, sample_id_column)
 
     if selection is not None:
@@ -278,18 +280,11 @@ def _get_prepared_data(
 
     sample_ids = df[sample_id_column].astype(str).tolist()
     component_columns = _extract_component_columns(df, sample_id_column)
-    sorted_columns, reorder = _canonicalize_component_columns(component_columns)
+    sorted_columns, _ = _canonicalize_component_columns(component_columns)
 
-    if npy_path is not None:
-        H = np.load(resolve_asset_path(npy_path, default_dir="data"))
-        if selection is not None:
-            H = H[selection]
-        if reorder is not None and len(component_columns) == H.shape[1]:
-            H = H[:, reorder]
-    else:
-        if not component_columns:
-            raise ValueError(f"No numeric component columns found in {resolved_csv}")
-        H = df[sorted_columns].to_numpy()
+    if not component_columns:
+        raise ValueError(f"No component columns found in {filepath}")
+    H = df[sorted_columns].to_numpy()
 
     if metadata_path is None:
         cancer_types = [sample_id[:4] for sample_id in sample_ids]
@@ -321,12 +316,7 @@ def load_analysis_umap_data(
     analysis_name: str | None = None,
 ) -> pd.DataFrame:
     cfg = resolve_analysis_cfg(cfg_or_path, analysis_name)
-    umap_path = resolve_asset_path(cfg.get("UMAP_FILENAME", "data/umap.parquet"))
-
-    if umap_path.suffix.lower() == ".parquet":
-        umap_df = pd.read_parquet(umap_path)
-    else:
-        umap_df = pd.read_csv(umap_path)
+    umap_df = _get_dataframe(cfg.get("UMAP_FILENAME", "data/umap.parquet"))
 
     rename_map = {}
     if "UMAP_1" in umap_df.columns:
@@ -364,38 +354,26 @@ def prepare_grandscatter_data(
 ) -> tuple[pd.DataFrame, list[str], dict[str, str]]:
     """Build the dataframe and colors needed by ``grandscatter.Scatter``."""
     cfg = resolve_analysis_cfg(cfg_path, analysis_name)
-    csv_path, npy_path = _resolve_component_source_paths(
-        cfg,
-        csv_key="GRANDSCATTER_CSV_FILENAME",
-        npy_key="GRANDSCATTER_NPY_PROPORTIONS_FILENAME",
-        default_csv="data/all_H_component_contributions_k16.csv",
-        default_npy="data/tcga_bulk_k16_H_proportions.npy",
+    source = cfg.get(
+        "GRANDSCATTER_CSV_FILENAME",
+        cfg.get("DEFAULT_CSV_FILENAME", "data/all_H_component_contributions_k16.csv"),
     )
 
-    metadata_df = _get_dataframe(csv_path)
-    metadata_df, sample_id_column = _standardize_sample_id_column(metadata_df)
-    H_prop = np.load(npy_path)
+    component_df = _coerce_proportions(_get_dataframe(source))
+    component_df, sample_id_column = _standardize_sample_id_column(component_df)
 
     if selection is not None:
-        metadata_df = metadata_df.iloc[selection].reset_index(drop=True)
-        H_prop = H_prop[selection]
+        component_df = component_df.iloc[selection].reset_index(drop=True)
 
-    component_columns = _extract_component_columns(metadata_df, sample_id_column)
+    component_columns = _extract_component_columns(component_df, sample_id_column)
     if not component_columns:
-        raise ValueError(f"No component columns found in metadata CSV: {csv_path}")
-    if len(component_columns) != H_prop.shape[1]:
-        raise ValueError(
-            "Grandscatter component count mismatch between CSV and NPY sources: "
-            f"{len(component_columns)} columns from {csv_path} vs "
-            f"{H_prop.shape[1]} matrix components from {npy_path}"
-        )
+        raise ValueError(f"No component columns found in grandscatter source: {source}")
 
-    axis_fields, reorder = _canonicalize_component_columns(component_columns)
-    if reorder is not None:
-        H_prop = H_prop[:, reorder]
+    axis_fields, _ = _canonicalize_component_columns(component_columns)
+    H_prop = component_df[axis_fields].to_numpy()
 
     df = pd.DataFrame(H_prop.astype(np.float32), columns=axis_fields)
-    sample_ids = metadata_df[sample_id_column].astype(str).tolist()
+    sample_ids = component_df[sample_id_column].astype(str).tolist()
     df.insert(0, "sample_id", sample_ids)
     df["cancer_type"] = _resolve_cancer_types(sample_ids, cfg)
     df["cancer_type"] = df["cancer_type"].fillna("Unknown").astype("category")

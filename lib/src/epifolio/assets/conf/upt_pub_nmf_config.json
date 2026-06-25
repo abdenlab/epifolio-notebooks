@@ -2,35 +2,29 @@
   "DEFAULT_ANALYSIS": "Canonical",
   "ANALYSES": {
     "Canonical": {
-      "DEFAULT_CSV_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.csv",
-      "NPY_PROPORTIONS_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.npy",
-      "GRANDSCATTER_CSV_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.csv",
-      "GRANDSCATTER_NPY_PROPORTIONS_FILENAME": "data/canonical/tcga_atac_nmf_k24_H_proportions.npy",
-      "UMAP_FILENAME": "data/canonical/tcga_atac_nmf_k24_umap_coordinates.csv",
-      "ANALYSIS_METADATA_FILENAME": "data/canonical/tcga_atac_nmf_k24_metadata_sorted.csv"
+      "DEFAULT_CSV_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/embeddings/tcga.atac.nmf.sample.pq",
+      "GRANDSCATTER_CSV_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/embeddings/tcga.atac.nmf.sample.pq",
+      "UMAP_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/notebooks/nmf_explorer/canonical/tcga_atac_nmf_k24_umap_coordinates.csv",
+      "ANALYSIS_METADATA_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/notebooks/nmf_explorer/canonical/tcga_atac_nmf_k24_metadata_sorted.csv"
     },
     "CN-aware unadjusted": {
-      "DEFAULT_CSV_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.csv",
-      "NPY_PROPORTIONS_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.npy",
-      "GRANDSCATTER_CSV_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.csv",
-      "GRANDSCATTER_NPY_PROPORTIONS_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_H_proportions.npy",
-      "UMAP_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_umap_coordinates.csv",
-      "ANALYSIS_METADATA_FILENAME": "data/cn-aware-unadjusted/confounded_nmf_k24_metadata_sorted.csv"
+      "DEFAULT_CSV_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/embeddings/confounded.nmf.sample.pq",
+      "GRANDSCATTER_CSV_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/embeddings/confounded.nmf.sample.pq",
+      "UMAP_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/notebooks/nmf_explorer/cn-aware-unadjusted/confounded_nmf_k24_umap_coordinates.csv",
+      "ANALYSIS_METADATA_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/notebooks/nmf_explorer/cn-aware-unadjusted/confounded_nmf_k24_metadata_sorted.csv"
     },
     "CN-aware adjusted": {
-      "DEFAULT_CSV_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.csv",
-      "NPY_PROPORTIONS_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.npy",
-      "GRANDSCATTER_CSV_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.csv",
-      "GRANDSCATTER_NPY_PROPORTIONS_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_H_proportions.npy",
-      "UMAP_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_umap_coordinates.csv",
-      "ANALYSIS_METADATA_FILENAME": "data/cn-aware-adjusted/adjusted_nmf_k24_metadata_sorted.csv"
+      "DEFAULT_CSV_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/embeddings/adjusted.nmf.sample.pq",
+      "GRANDSCATTER_CSV_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/embeddings/adjusted.nmf.sample.pq",
+      "UMAP_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/notebooks/nmf_explorer/cn-aware-adjusted/adjusted_nmf_k24_umap_coordinates.csv",
+      "ANALYSIS_METADATA_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/notebooks/nmf_explorer/cn-aware-adjusted/adjusted_nmf_k24_metadata_sorted.csv"
     }
   },
   "ANALYSIS_METADATA_SAMPLE_ID_COLUMN": "sample_id",
   "ANALYSIS_CANCER_TYPE_COLUMN": "cancer_type",
   "JSON_FILENAME_CANCER_TYPE_COLORS": "conf/cancer_type_color_map.json",
   "JSON_FILENAME_COMPONENT_COLORS": "conf/nmf_component_color_map.json",
-  "STRIP_METADATA_FILENAME": "data/0302_corces_submitter_metadata_expanded_v2.csv",
+  "STRIP_METADATA_FILENAME": "https://projects.abdenlab.org/itcr/epifolio/metadata/strip.corces_submitter_metadata.csv",
   "STRIP_METADATA_ID_COLUMN": "submitter_id",
   "STRIP_UNKNOWN_COLOR": "#CCCCCC",
   "HEATMAP_STRIPS": [

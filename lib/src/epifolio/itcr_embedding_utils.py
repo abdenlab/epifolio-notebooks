@@ -11,8 +11,9 @@ from epifolio import ASSETS
 from epifolio.color_utils import distinct_palette, load_color_map
 from epifolio.data_utils import resolve_asset_path
 
-CLINICAL_METADATA_PATH = ASSETS / "data" / "unified_clinical_metadata_tcga_corces_unified_clinical_metadata_final.csv"
-METADATA_DICTIONARY_PATH = ASSETS / "data" / "unified_clinical_metadata_data_dictionary_final.csv"
+_REMOTE_METADATA = "https://projects.abdenlab.org/itcr/epifolio/metadata"
+CLINICAL_METADATA_PATH = f"{_REMOTE_METADATA}/unified_clinical_metadata.csv"
+METADATA_DICTIONARY_PATH = f"{_REMOTE_METADATA}/unified_clinical_metadata_dictionary.csv"
 CANCER_COLOR_PATH = ASSETS / "conf" / "cancer_type_color_map.json"
 
 _METADATA_GROUPS = {

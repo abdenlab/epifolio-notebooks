@@ -15,20 +15,6 @@ app = marimo.App(width="full")
 
 @app.cell
 def _():
-    import sys
-    from pathlib import Path
-
-    repo_root = Path(__file__).resolve().parents[1]
-    lib_src = repo_root / "lib" / "src"
-    if lib_src.exists():
-        lib_src_str = str(lib_src)
-        if lib_src_str not in sys.path:
-            sys.path.insert(0, lib_src_str)
-    return
-
-
-@app.cell
-def _():
     import marimo as mo
 
     from epifolio.higlass_utils import (

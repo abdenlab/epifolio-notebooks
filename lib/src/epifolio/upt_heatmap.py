@@ -9,21 +9,18 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from epifolio.color_utils import component_palette, distinct_palette, load_color_map
-from epifolio.data_utils import _get_prepared_data, prepare_grandscatter_data, resolve_analysis_cfg
-
-
-def _patient_id_from_sample_id(sample_id: str) -> str | None:
-    parts = str(sample_id).split("-")
-    if "TCGA" in parts:
-        idx = parts.index("TCGA")
-        if idx + 2 < len(parts):
-            return "-".join(parts[idx : idx + 3])
-    if len(parts) >= 4 and parts[1] == "TCGA":
-        return "-".join(parts[1:4])
-    if len(parts) >= 3 and parts[0] == "TCGA":
-        return "-".join(parts[:3])
-    return None
+from epifolio.color_utils import (
+    component_palette,
+    distinct_palette,
+    load_color_map,
+    unique_sorted_unknown_last,
+)
+from epifolio.data_utils import (
+    _get_prepared_data,
+    patient_id_from_sample_id,
+    prepare_grandscatter_data,
+    resolve_analysis_cfg,
+)
 
 
 def _load_strip_metadata(cfg: dict) -> pd.DataFrame:
@@ -32,19 +29,12 @@ def _load_strip_metadata(cfg: dict) -> pd.DataFrame:
     return metadata_df.drop_duplicates(subset=[id_column]).copy()
 
 
-def _unique_sorted_unknown_last(values: list[str]) -> list[str]:
-    unique_values = sorted({str(value) for value in values})
-    if "Unknown" in unique_values:
-        unique_values = [value for value in unique_values if value != "Unknown"] + ["Unknown"]
-    return unique_values
-
-
 def _palette_map(
     values: list[str],
     palette: list[str],
     unknown_color: str,
 ) -> dict[str, str]:
-    unique_values = _unique_sorted_unknown_last(values)
+    unique_values = unique_sorted_unknown_last(values)
     if not unique_values:
         return {}
 
@@ -63,7 +53,7 @@ def _cohort_color_map(
     cancer_color_map: dict[str, str],
     unknown_color: str,
 ) -> dict[str, str]:
-    unique_values = _unique_sorted_unknown_last(values)
+    unique_values = unique_sorted_unknown_last(values)
     fallback_palette = distinct_palette(max(1, len(unique_values)))
 
     color_map: dict[str, str] = {}
@@ -277,7 +267,7 @@ def _build_strip_values(sample_ids: list[str], cfg: dict) -> tuple[dict[str, lis
     strip_frame = pd.DataFrame(
         {
             "sample_id": sample_ids,
-            "patient_id": [_patient_id_from_sample_id(sample_id) for sample_id in sample_ids],
+            "patient_id": [patient_id_from_sample_id(sample_id) for sample_id in sample_ids],
         }
     )
     merged = strip_frame.merge(
@@ -303,7 +293,7 @@ def _metadata_group_sort(H: np.ndarray, group_values: list[str]) -> np.ndarray:
     H_ord = H[:, comp_order]
     values = np.asarray(group_values)
 
-    for group in _unique_sorted_unknown_last(group_values):
+    for group in unique_sorted_unknown_last(group_values):
         sub_indices = np.where(values == group)[0]
         if len(sub_indices) == 0:
             continue

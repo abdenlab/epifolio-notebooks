@@ -8,8 +8,16 @@ from pathlib import Path
 import pandas as pd
 
 from epifolio import ASSETS
-from epifolio.color_utils import distinct_palette, load_color_map
-from epifolio.data_utils import resolve_asset_path
+from epifolio.color_utils import (
+    distinct_palette,
+    load_color_map,
+    unique_sorted_unknown_last,
+)
+from epifolio.data_utils import (
+    cancer_type_from_sample_id,
+    patient_id_from_sample_id,
+    resolve_asset_path,
+)
 
 _REMOTE_METADATA = "https://projects.abdenlab.org/itcr/epifolio/metadata"
 CLINICAL_METADATA_PATH = f"{_REMOTE_METADATA}/unified_clinical_metadata.csv"
@@ -168,19 +176,6 @@ _COLOR_FIELD_CANDIDATES = [
 ]
 
 
-def patient_id_from_sample_id(sample_id: str) -> str | None:
-    parts = str(sample_id).split("-")
-    if len(parts) >= 4 and parts[1] == "TCGA":
-        return "-".join(parts[1:4])
-    if len(parts) >= 3 and parts[0] == "TCGA":
-        return "-".join(parts[:3])
-    return None
-
-
-def cancer_type_from_sample_id(sample_id: str) -> str:
-    return str(sample_id)[:4]
-
-
 def summarize_cancer_types(cancer_types) -> str:
     unique_types = sorted({str(value) for value in cancer_types if pd.notna(value)})
     if len(unique_types) <= 6:
@@ -204,20 +199,13 @@ for column in _FLAG_COLUMNS:
     _FORMAT_MAPPING[column] = format_flag
 
 
-def _unique_sorted_unknown_last(values: list[str]) -> list[str]:
-    unique_values = sorted({str(value) for value in values if pd.notna(value)})
-    if "Unknown" in unique_values:
-        unique_values = [value for value in unique_values if value != "Unknown"] + ["Unknown"]
-    return unique_values
-
-
 def _cohort_color_lookup(
     values: list[str],
     cancer_color_map: dict[str, str],
     unknown_color: str,
 ) -> dict[str, str]:
     lookup = {}
-    for value in _unique_sorted_unknown_last(values):
+    for value in unique_sorted_unknown_last(values):
         if value == "Unknown":
             lookup[value] = unknown_color
             continue
@@ -246,7 +234,7 @@ def build_strip_color_lookup(
 ) -> dict[str, str]:
     strip_spec = strip_spec_by_column.get(selected_color_column)
     if strip_spec is None:
-        categories = _unique_sorted_unknown_last(values)
+        categories = unique_sorted_unknown_last(values)
         auto_palette = distinct_palette(max(len(categories), 1))
         lookup = {}
         auto_index = 0
@@ -267,7 +255,7 @@ def build_strip_color_lookup(
         return lookup
 
     palette = [str(color) for color in strip_spec.get("palette", [])]
-    categories = _unique_sorted_unknown_last(values)
+    categories = unique_sorted_unknown_last(values)
     if not palette:
         return {category: unknown_color for category in categories}
 

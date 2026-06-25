@@ -5,8 +5,20 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
 import plotly.colors as pc
 import plotly.express as px
+
+
+def unique_sorted_unknown_last(values: list[str]) -> list[str]:
+    """Return the unique values sorted alphabetically, with "Unknown" last.
+
+    NA/NaN values are dropped so they never become a literal category.
+    """
+    unique_values = sorted({str(value) for value in values if pd.notna(value)})
+    if "Unknown" in unique_values:
+        unique_values = [value for value in unique_values if value != "Unknown"] + ["Unknown"]
+    return unique_values
 
 
 def component_palette(n: int) -> list[str]:

@@ -1,0 +1,169 @@
+{
+  "editable": true,
+  "trackSourceServers": [
+    "/api/v1",
+    "http://higlass.io/api/v1"
+  ],
+  "exportViewUrl": "/api/v1/viewconfs",
+  "views": [
+    {
+      "initialXDomain": [
+        1440763813.3127189,
+        1442990265.7390883
+      ],
+      "initialYDomain": [
+        595697678.0762143,
+        595804705.51733
+      ],
+      "tracks": {
+        "top": [
+          {
+            "type": "chromosome-labels",
+            "uid": "XTqEyYTGSPKXALEFFm4uug",
+            "tilesetUid": "ZpZ8c5JJRUS1J7ZkofcUrg",
+            "server": "https://resgen.io/api/v1",
+            "options": {
+              "color": "#808080",
+              "stroke": "#ffffff",
+              "fontSize": 12,
+              "fontIsLeftAligned": false,
+              "showMousePosition": false,
+              "mousePositionColor": "#000000"
+            },
+            "width": 2533,
+            "height": 30
+          },
+          {
+            "type": "horizontal-gene-annotations",
+            "uid": "L7GdwprJSsGz2kMR1ntLgA",
+            "tilesetUid": "M9A9klpwTci5Vf4bHZ864g",
+            "server": "https://resgen.io/api/v1",
+            "options": {
+              "fontSize": 10,
+              "labelColor": "black",
+              "labelBackgroundColor": "#ffffff",
+              "labelPosition": "hidden",
+              "labelLeftMargin": 0,
+              "labelRightMargin": 0,
+              "labelTopMargin": 0,
+              "labelBottomMargin": 0,
+              "minHeight": 24,
+              "plusStrandColor": "blue",
+              "minusStrandColor": "red",
+              "trackBorderWidth": 0,
+              "trackBorderColor": "black",
+              "showMousePosition": false,
+              "mousePositionColor": "#000000",
+              "geneAnnotationHeight": 16,
+              "geneLabelPosition": "outside",
+              "geneStrandSpacing": 4
+            },
+            "width": 2533,
+            "height": 90
+          },
+          {
+            "type": "horizontal-stacked-bar",
+            "uid": "fhp73d7gSzKoAjQ9UJLorQ",
+            "tilesetUid": "HMSJyvLCSgGmrDJctdIz3w",
+            "server": "https://resgen.io/api/v1",
+            "options": {
+              "labelPosition": "topLeft",
+              "labelColor": "black",
+              "labelTextOpacity": 0.4,
+              "valueScaling": "exponential",
+              "trackBorderWidth": 0,
+              "trackBorderColor": "black",
+              "backgroundColor": "white",
+              "barBorder": true,
+              "sortLargestOnTop": true,
+              "selectRows": null,
+              "name": "Epilogos (hg38)",
+              "colorScale": [
+                "#FF0000",
+                "#FF4500",
+                "#32CD32",
+                "#008000",
+                "#006400",
+                "#C2E105",
+                "#FFFF00",
+                "#66CDAA",
+                "#8A91D0",
+                "#CD5C5C",
+                "#E9967A",
+                "#BDB76B",
+                "#808080",
+                "#C0C0C0",
+                "#FFFFFF"
+              ]
+            },
+            "width": 20,
+            "height": 20,
+            "plugin_url": "https://unpkg.com/higlass-multivec@0.3.3/dist/higlass-multivec.js"
+          },
+          {
+            "type": "horizontal-multivec",
+            "uid": "W9HY2pJqSAWMpWbza0nPag",
+            "tilesetUid": "E0AXSsX2Qqy4B4b68SoqgQ",
+            "server": "https://resgen.io/api/v1",
+            "options": {
+              "labelPosition": "topLeft",
+              "labelLeftMargin": 0,
+              "labelRightMargin": 0,
+              "labelTopMargin": 0,
+              "labelBottomMargin": 0,
+              "labelShowResolution": true,
+              "labelShowAssembly": true,
+              "labelColor": "black",
+              "labelTextOpacity": 0.4,
+              "minHeight": 100,
+              "valueScaling": "linear",
+              "trackBorderWidth": 0,
+              "trackBorderColor": "black",
+              "heatmapValueScaling": "linear",
+              "selectRows": null,
+              "selectRowsAggregationMode": "mean",
+              "selectRowsAggregationWithRelativeHeight": true,
+              "colorbarBackgroundColor": "#ffffff",
+              "colorbarPosition": "topRight",
+              "zeroValueColor": null,
+              "name": "tcga.by_component.1000.mv5",
+              "scaleStartPercent": "0.00000",
+              "scaleEndPercent": "0.14444",
+              "colorRange": [
+                "rgba(255,255,255,1)",
+                "rgba(0,0,0,1)"
+              ]
+            },
+            "width": 2533,
+            "height": 968
+          }
+        ],
+        "left": [],
+        "center": [],
+        "bottom": [],
+        "right": [],
+        "whole": [],
+        "gallery": []
+      },
+      "layout": {
+        "w": 12,
+        "h": 12,
+        "x": 0,
+        "y": 0
+      },
+      "uid": "IpFAULSQShmBHSlLf6IGOg"
+    }
+  ],
+  "zoomLocks": {
+    "locksByViewUid": {},
+    "locksDict": {}
+  },
+  "locationLocks": {
+    "locksByViewUid": {},
+    "locksDict": {}
+  },
+  "valueScaleLocks": {
+    "locksByViewUid": {},
+    "locksDict": {}
+  }
+}

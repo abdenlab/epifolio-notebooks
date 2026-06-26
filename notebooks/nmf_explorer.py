@@ -34,58 +34,88 @@ def _():
 
 @app.cell
 def _():
+    import json
+
     import marimo as mo
     import numpy as np
     import pandas as pd
 
     from epifolio import ASSETS
-    from epifolio.data_utils import (
-        get_available_analyses,
-        load_analysis_umap_data,
-        prepare_grandscatter_data,
-        resolve_analysis_cfg,
-    )
-    from epifolio.itcr_embedding_utils import (
+    from epifolio.colors import load_color_map
+    from epifolio.embedding import (
         available_color_fields,
-        build_metadata_views,
         build_strip_color_lookup,
-        load_cancer_color_map,
-        load_clinical_metadata,
-        load_metadata_tooltips,
-        metadata_presentation,
         prepare_embedding_for_display,
     )
-    from epifolio.upt_heatmap import (
-        create_linked_heatmap_figure,
-        get_grandscatter_initial_projection,
+    from epifolio.metadata import (
+        build_metadata_views,
+        metadata_presentation,
+        metadata_tooltips as build_metadata_tooltips,
+    )
+    from epifolio.nmf import (
+        build_metadata_strips,
+        component_color_sequence,
+        nmf_activity_heatmap,
+        sample_sort_order,
     )
 
     return (
         ASSETS,
         available_color_fields,
+        build_metadata_strips,
+        build_metadata_tooltips,
         build_metadata_views,
         build_strip_color_lookup,
-        create_linked_heatmap_figure,
-        get_available_analyses,
-        get_grandscatter_initial_projection,
-        load_analysis_umap_data,
-        load_cancer_color_map,
-        load_clinical_metadata,
-        load_metadata_tooltips,
+        component_color_sequence,
+        json,
+        load_color_map,
         metadata_presentation,
         mo,
+        nmf_activity_heatmap,
         np,
         pd,
         prepare_embedding_for_display,
-        prepare_grandscatter_data,
-        resolve_analysis_cfg,
+        sample_sort_order,
     )
 
 
 @app.cell
-def _(ASSETS):
-    cfg_path = ASSETS / "conf" / "upt_pub_nmf_config.json"
-    return (cfg_path,)
+def _():
+    # Explicit data sources — visible data flow, no config indirection.
+    BASE = "https://projects.abdenlab.org/itcr/epifolio"
+    metadata_base = f"{BASE}/metadata"
+    _nb = f"{BASE}/notebooks/nmf_explorer"
+    analysis_sources = {
+        "Canonical": {
+            "nmf": f"{BASE}/embeddings/tcga.atac.nmf.sample.pq",
+            "umap": f"{_nb}/canonical/tcga_atac_nmf_k24_umap_coordinates.csv",
+            "metadata": f"{_nb}/canonical/tcga_atac_nmf_k24_metadata_sorted.csv",
+        },
+        "CN-aware adjusted": {
+            "nmf": f"{BASE}/embeddings/adjusted.nmf.sample.pq",
+            "umap": f"{_nb}/cn-aware-adjusted/adjusted_nmf_k24_umap_coordinates.csv",
+            "metadata": f"{_nb}/cn-aware-adjusted/adjusted_nmf_k24_metadata_sorted.csv",
+        },
+        "CN-aware unadjusted": {
+            "nmf": f"{BASE}/embeddings/confounded.nmf.sample.pq",
+            "umap": f"{_nb}/cn-aware-unadjusted/confounded_nmf_k24_umap_coordinates.csv",
+            "metadata": f"{_nb}/cn-aware-unadjusted/confounded_nmf_k24_metadata_sorted.csv",
+        },
+    }
+    return analysis_sources, metadata_base
+
+
+@app.cell
+def _(analysis_name, analysis_sources, pd):
+    # Load the selected analysis explicitly: raw NMF loadings -> proportions.
+    _src = analysis_sources[analysis_name.value]
+    _nmf = pd.read_parquet(_src["nmf"])
+    activity_sample_ids = _nmf["sample"].astype(str).tolist()
+    _raw = _nmf[[c for c in _nmf.columns if c.startswith("NMF")]].to_numpy(dtype=float)
+    activity_H = _raw / _raw.sum(axis=1, keepdims=True)
+    _cancer = pd.read_csv(_src["metadata"]).set_index("sample_id")["cancer_type"]
+    activity_cancer_types = [str(_cancer.get(s, "Unknown")) for s in activity_sample_ids]
+    return activity_H, activity_cancer_types, activity_sample_ids
 
 
 @app.cell(hide_code=True)
@@ -96,8 +126,8 @@ def _(mo):
 
 
 @app.cell
-def _(cfg_path, get_available_analyses, mo):
-    analysis_options = get_available_analyses(cfg_path)
+def _(analysis_sources, mo):
+    analysis_options = list(analysis_sources)
     analysis_name = mo.ui.dropdown(
         options=analysis_options,
         value=analysis_options[0],
@@ -117,39 +147,50 @@ def _(mo):
 
 
 @app.cell
-def _(cfg_path, pd, resolve_analysis_cfg):
-    base_cfg = resolve_analysis_cfg(cfg_path)
-    strip_specs = base_cfg.get("HEATMAP_STRIPS", [])
+def _(ASSETS, json, metadata_base, pd):
+    strip_cfg = json.loads((ASSETS / "conf" / "nmf_strips.json").read_text())
+    strip_specs = strip_cfg.get("HEATMAP_STRIPS", [])
     strip_label_to_column = {
         spec.get("label", spec["column"]): spec["column"] for spec in strip_specs
     }
     strip_spec_by_column = {spec["column"]: spec for spec in strip_specs}
-    strip_id_column = base_cfg.get("STRIP_METADATA_ID_COLUMN", "submitter_id")
+    strip_id_column = strip_cfg.get("STRIP_METADATA_ID_COLUMN", "submitter_id")
+    strip_unknown_color = strip_cfg.get("STRIP_UNKNOWN_COLOR", "#CCCCCC")
     strip_metadata = (
-        pd.read_csv(base_cfg["STRIP_METADATA_FILENAME"])
+        pd.read_csv(f"{metadata_base}/strip.corces_submitter_metadata.csv")
         .drop_duplicates(subset=[strip_id_column])
         .rename(columns={strip_id_column: "patient_id"})
     )
-    return base_cfg, strip_label_to_column, strip_metadata, strip_spec_by_column
+    return (
+        strip_label_to_column,
+        strip_metadata,
+        strip_spec_by_column,
+        strip_specs,
+        strip_unknown_color,
+    )
 
 
 @app.cell
 def _(
+    ASSETS,
     available_color_fields,
-    load_cancer_color_map,
-    load_clinical_metadata,
-    load_metadata_tooltips,
+    build_metadata_tooltips,
+    load_color_map,
+    metadata_base,
     metadata_presentation,
+    pd,
     strip_label_to_column,
     strip_metadata,
 ):
-    cancer_color_map = load_cancer_color_map()
-    clinical_metadata = load_clinical_metadata().merge(
+    cancer_color_map = load_color_map(ASSETS / "conf" / "cancer_type_color_map.json")
+    clinical_metadata = pd.read_csv(f"{metadata_base}/unified_clinical_metadata.csv").merge(
         strip_metadata,
         on="patient_id",
         how="left",
     )
-    metadata_tooltips = load_metadata_tooltips()
+    metadata_tooltips = build_metadata_tooltips(
+        pd.read_csv(f"{metadata_base}/unified_clinical_metadata_dictionary.csv")
+    )
     metadata_groups, base_tooltips, wrapped_columns, format_mapping = (
         metadata_presentation()
     )
@@ -213,8 +254,15 @@ def _(np):
 
 
 @app.cell
-def _(analysis_name, load_analysis_umap_data, cfg_path):
-    umap_data = load_analysis_umap_data(cfg_path, analysis_name=analysis_name.value)
+def _(analysis_name, analysis_sources, pd):
+    _src = analysis_sources[analysis_name.value]
+    umap_data = pd.read_csv(_src["umap"]).rename(
+        columns={"UMAP_1": "UMAP-1", "UMAP_2": "UMAP-2", "Sample_ID": "Sample ID"}
+    )[["Sample ID", "UMAP-1", "UMAP-2"]]
+    _cancer = pd.read_csv(_src["metadata"]).set_index("sample_id")["cancer_type"]
+    umap_data["Cancer Type"] = (
+        umap_data["Sample ID"].astype(str).map(_cancer).fillna("Unknown").astype(str)
+    )
     return (umap_data,)
 
 
@@ -259,13 +307,13 @@ def _(
 
 @app.cell
 def _(
-    base_cfg,
     build_strip_color_lookup,
     base_sample_color_map,
     cancer_color_map,
     scatter_display_df,
     selected_color_column,
     strip_spec_by_column,
+    strip_unknown_color,
 ):
     sample_color_map = base_sample_color_map
     if selected_color_column in strip_spec_by_column:
@@ -274,7 +322,7 @@ def _(
             selected_color_column,
             strip_spec_by_column,
             cancer_color_map,
-            base_cfg.get("STRIP_UNKNOWN_COLOR", "#CCCCCC"),
+            strip_unknown_color,
         )
     return (sample_color_map,)
 
@@ -333,12 +381,7 @@ def _(normalize_selection, scatter_widget, set_shared_selected_ids):
 
         set_shared_selected_ids(update_if_changed)
 
-    _previous_observer = getattr(scatter_widget, "_marimo_selection_observer", None)
-    if _previous_observer is not None:
-        scatter_widget.unobserve(_previous_observer, names="selection")
-
     scatter_widget.observe(sync_scatter_selection, names="selection")
-    scatter_widget._marimo_selection_observer = sync_scatter_selection
     return
 
 
@@ -352,17 +395,50 @@ def _(normalize_selection, scatter_widget, shared_selected_ids):
 
 @app.cell
 def _(
-    analysis_name,
-    cfg_path,
-    create_linked_heatmap_figure,
+    ASSETS,
+    activity_H,
+    activity_cancer_types,
+    activity_sample_ids,
+    build_metadata_strips,
+    cancer_color_map,
+    component_color_sequence,
+    load_color_map,
     mo,
+    nmf_activity_heatmap,
+    sample_sort_order,
     scatter_display_df,
     shared_selected_ids,
     sort_method,
+    strip_metadata,
+    strip_specs,
+    strip_unknown_color,
 ):
+    # The notebook orchestrates; nmf_activity_heatmap just renders.
+    activity_strips = build_metadata_strips(
+        strip_specs,
+        activity_sample_ids,
+        strip_metadata,
+        id_column="patient_id",
+        cancer_color_map=cancer_color_map,
+        unknown_color=strip_unknown_color,
+    )
+    _organ_strip = next((s for s in activity_strips if s.label == "Organ System"), None)
+    activity_order = sample_sort_order(
+        sort_method.value,
+        activity_H,
+        activity_sample_ids,
+        cancer_types=activity_cancer_types,
+        group_values=_organ_strip.values if _organ_strip else None,
+    )
+
+    component_colors = component_color_sequence(
+        load_color_map(ASSETS / "conf" / "nmf_component_color_map.json"),
+        activity_H.shape[1],
+    )
+
     selection = shared_selected_ids()
     if selection:
-        highlight_sample_ids = (
+        _highlighted = set(
             scatter_display_df.iloc[selection]["Sample ID"].astype(str).tolist()
         )
         caption = (
@@ -370,17 +446,21 @@ def _(
             "all samples remain visible in the heatmap."
         )
     else:
-        highlight_sample_ids = None
+        _highlighted = set()
         caption = (
             "Showing all samples. Select samples in the scatter, heatmap, "
             "grandscatter, or metadata table to highlight them in the linked views."
         )
+    highlight_mask = [1 if sid in _highlighted else 0 for sid in activity_sample_ids]
 
-    fig = create_linked_heatmap_figure(
-        cfg_path=cfg_path,
-        sort_method=sort_method.value,
-        highlight_sample_ids=highlight_sample_ids,
-        analysis_name=analysis_name.value,
+    fig = nmf_activity_heatmap(
+        activity_H,
+        activity_sample_ids,
+        component_colors=component_colors,
+        sample_order=activity_order,
+        column_tick_labels=activity_cancer_types,
+        strips=activity_strips,
+        highlight_mask=highlight_mask,
     )
     heatmap_plot = mo.ui.plotly(fig)
     return caption, heatmap_plot
@@ -422,20 +502,22 @@ def _(heatmap_selected_sample_ids, sample_id_to_index, set_shared_selected_ids):
 
 @app.cell
 def _(
-    analysis_name,
-    cfg_path,
-    prepare_grandscatter_data,
+    activity_H,
+    activity_sample_ids,
+    pd,
     sample_color_map,
     scatter_display_df,
 ):
     from grandscatter import Scatter
 
-    gs_df, axis_fields, _ = prepare_grandscatter_data(
-        cfg_path,
-        analysis_name=analysis_name.value,
-    )
-    grandscatter_df = gs_df.rename(columns={"sample_id": "Sample ID"}).merge(
-        scatter_display_df[["Sample ID", "Color Label"]],
+    axis_fields = [f"Comp_{index}" for index in range(activity_H.shape[1])]
+    gs_df = pd.DataFrame(activity_H, columns=axis_fields)
+    gs_df.insert(0, "Sample ID", activity_sample_ids)
+    # Align rows to the UMAP scatter's order so a selection index refers to the
+    # same sample in both widgets (the NMF parquet and UMAP files are sorted
+    # differently). Merging onto scatter_display_df (left) preserves its order.
+    grandscatter_df = scatter_display_df[["Sample ID", "Color Label"]].merge(
+        gs_df,
         on="Sample ID",
         how="left",
     )
@@ -455,91 +537,6 @@ def _(
 
 
 @app.cell
-def _(analysis_name, cfg_path, get_grandscatter_initial_projection, mo):
-    import json
-
-    projection = get_grandscatter_initial_projection(
-        cfg_path,
-        analysis_name=analysis_name.value,
-    )
-    points_json = json.dumps(projection["points"])
-    hover_overlay = mo.Html(
-        f"""
-<style>
-  .gs-tooltip {{
-    position: fixed;
-    background: rgba(15, 15, 15, 0.82);
-    color: #f0f0f0;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    font-family: monospace;
-    pointer-events: none;
-    display: none;
-    z-index: 9999;
-    white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }}
-</style>
-<div class="gs-tooltip" id="gs-hover-tip"></div>
-<script type="module">
-const POINTS = {points_json};
-const tip = document.getElementById("gs-hover-tip");
-
-function nearest(nx, ny) {{
-  let best = null;
-  let bestDistance = Infinity;
-  for (let i = 0; i < POINTS.length; i += 1) {{
-    const point = POINTS[i];
-    const distance = (point.x - nx) ** 2 + (point.y - ny) ** 2;
-    if (distance < bestDistance) {{
-      bestDistance = distance;
-      best = point;
-    }}
-  }}
-  return best ? {{ ...best, dist: bestDistance }} : null;
-}}
-
-function attach() {{
-  const widget = document.querySelector(".grandscatter-widget");
-  if (!widget) {{
-    requestAnimationFrame(attach);
-    return;
-  }}
-  const canvas = widget.querySelector("canvas");
-  if (!canvas) {{
-    requestAnimationFrame(attach);
-    return;
-  }}
-
-  canvas.addEventListener("mousemove", (event) => {{
-    const rect = canvas.getBoundingClientRect();
-    const nx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    const ny = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
-    const hit = nearest(nx, ny);
-    if (hit && hit.dist < 0.03) {{
-      tip.innerHTML = "<b>" + hit.ct + "</b> &nbsp;|&nbsp; " + hit.comp;
-      tip.style.display = "block";
-      tip.style.left = event.clientX + 14 + "px";
-      tip.style.top = event.clientY - 36 + "px";
-    }} else {{
-      tip.style.display = "none";
-    }}
-  }});
-
-  canvas.addEventListener("mouseleave", () => {{
-    tip.style.display = "none";
-  }});
-}}
-
-attach();
-</script>
-"""
-    )
-    return (hover_overlay,)
-
-
-@app.cell
 def _(gs_widget, normalize_selection, set_shared_selected_ids):
     def sync_grandscatter_selection(change):
         incoming_ids = normalize_selection(change.get("new"))
@@ -550,12 +547,7 @@ def _(gs_widget, normalize_selection, set_shared_selected_ids):
 
         set_shared_selected_ids(update_if_changed)
 
-    _previous_observer = getattr(gs_widget, "_marimo_selection_observer", None)
-    if _previous_observer is not None:
-        gs_widget.unobserve(_previous_observer, names="selected_points")
-
     gs_widget.observe(sync_grandscatter_selection, names="selected_points")
-    gs_widget._marimo_selection_observer = sync_grandscatter_selection
     return
 
 
@@ -624,7 +616,6 @@ def _(
     format_mapping,
     gs_widget,
     heatmap_plot,
-    hover_overlay,
     metadata_groups,
     metadata_summary,
     metadata_tab_name,
@@ -757,7 +748,7 @@ def _(
     embedding_views = mo.hstack(
         [
             scatter_widget,
-            mo.vstack([hover_overlay, gs_widget]),
+            gs_widget,
         ],
         widths=[0.42, 0.58],
     )

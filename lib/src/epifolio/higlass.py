@@ -1,14 +1,13 @@
-"""HiGlass view-config helpers for the index explorer notebook."""
+"""HiGlass view-config transforms for the index explorer notebook."""
 
 from __future__ import annotations
 
 import copy
-import json
-from pathlib import Path
 
 from . import ASSETS
 
 # The bundled HiGlass index view config (resgen-hosted TCGA bulk multivec tracks).
+# The notebook reads this path explicitly: json.loads(INDEX_VIEWCONF_PATH.read_text()).
 INDEX_VIEWCONF_PATH = ASSETS / "conf" / "higlass_index_viewconf.json"
 
 # Plugin track types in the index view config need their JS plugin bundle
@@ -19,15 +18,6 @@ MULTIVEC_PLUGIN_URL = (
 MULTIVEC_PLUGIN_TYPES = frozenset(
     {"horizontal-multivec", "horizontal-stacked-bar"}
 )
-
-
-def load_index_viewconf(path: str | Path | None = None) -> dict:
-    """Read the HiGlass index view config JSON.
-
-    Defaults to the copy bundled in ``epifolio/assets/conf``.
-    """
-    source = INDEX_VIEWCONF_PATH if path is None else Path(path)
-    return json.loads(source.read_text(encoding="utf-8"))
 
 
 def inject_plugin_urls(

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "marimo>=0.20.2",
+#     "marimo>=0.23.3",
 #     "higlass-python>=1.4.0",
 #     "epifolio @ git+https://github.com/abdenlab/epifolio-notebooks.git#subdirectory=lib",
 # ]
@@ -9,41 +9,38 @@
 
 import marimo
 
-__generated_with = "0.21.1"
+__generated_with = "0.23.9"
 app = marimo.App(width="full")
 
 
 @app.cell
 def _():
+    import json
+
     import marimo as mo
 
-    from epifolio.higlass_utils import (
-        INDEX_VIEWCONF_PATH,
-        inject_plugin_urls,
-        load_index_viewconf,
-    )
+    from epifolio.higlass import INDEX_VIEWCONF_PATH, inject_plugin_urls
 
-    return INDEX_VIEWCONF_PATH, inject_plugin_urls, load_index_viewconf, mo
+    return INDEX_VIEWCONF_PATH, inject_plugin_urls, json, mo
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        """
+    mo.md("""
     # HiGlass index explorer
 
     Renders the bundled `higlass_index_viewconf.json` (TCGA bulk multivec
     tracks hosted on resgen.io) with `higlass-python`. The view config ships
     as package data inside `epifolio`, so no network fetch is needed beyond
     the HiGlass tile servers referenced by the tracks.
-    """
-    )
+    """)
     return
 
 
 @app.cell
-def _(load_index_viewconf):
-    viewconfig = load_index_viewconf()
+def _(INDEX_VIEWCONF_PATH, json):
+    # Explicit read of the bundled view config — visible data flow.
+    viewconfig = json.loads(INDEX_VIEWCONF_PATH.read_text(encoding="utf-8"))
     return (viewconfig,)
 
 
@@ -59,8 +56,7 @@ def _(normalized_viewconfig):
 
     viewconf = hg.Viewconf(**normalized_viewconfig)
     widget = viewconf.widget()
-
-    return viewconf, widget
+    return (widget,)
 
 
 @app.cell(hide_code=True)

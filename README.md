@@ -12,8 +12,8 @@ Three use cases to support:
 ```
 epifolio-notebooks/
 ├── notebooks/                      # The Marimo notebooks
-│   ├── nmf_explorer.py            # PEP 723 metadata (no bootstrap cell needed)
-│   ├── higlass_browser.py
+│   ├── nmf_sample_explorer.py            # PEP 723 metadata (no bootstrap cell needed)
+│   ├── higlass_explorer.py
 │   ├── pca_hiplot.py
 │   └── ccre_scatter.py
 ├── lib/                            # The epifolio package (installed via PEP 723)
@@ -82,9 +82,9 @@ In other cases, we may access large assets like Parquet files using appropriate 
 
 ## Notebook surface
 
-- `notebooks/nmf_explorer.py` — multi-analysis TCGA NMF explorer with linked UMAP, heatmap, grandscatter, and metadata views
+- `notebooks/nmf_sample_explorer.py` — multi-analysis TCGA NMF explorer with linked UMAP, heatmap, grandscatter, and metadata views
 - `notebooks/pca_hiplot.py` — PCA result explorer with HiPlot and linked metadata views
-- `notebooks/higlass_browser.py` — packaged HiGlass browser for the published multivec viewconfig
+- `notebooks/higlass_explorer.py` — packaged HiGlass browser for the published multivec viewconfig
 
 ## Developer Workflow
 
@@ -92,9 +92,9 @@ In other cases, we may access large assets like Parquet files using appropriate 
 git clone https://github.com/abdenlab/epifolio-notebooks
 cd epifolio-notebooks
 uv sync                                          # Install deps (epifolio as editable)
-uv run marimo edit notebooks/nmf_explorer.py     # Dev with hot reload
+uv run marimo edit notebooks/nmf_sample_explorer.py     # Dev with hot reload
 uv run marimo edit notebooks/pca_hiplot.py
-uv run marimo edit notebooks/higlass_browser.py
+uv run marimo edit notebooks/higlass_explorer.py
 ```
 
 The root `pyproject.toml` includes `epifolio` as an editable dependency (`lib/`), so changes to shared modules are reflected immediately without reinstalling.
@@ -103,22 +103,22 @@ The root `pyproject.toml` includes `epifolio` as an editable dependency (`lib/`)
 
 ```bash
 # Option A: Run directly from URL (no clone needed)
-uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/nmf_explorer.py
+uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/nmf_sample_explorer.py
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/pca_hiplot.py
-uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/higlass_browser.py
+uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/higlass_explorer.py
 
 # Option B: Clone and run
 git clone https://github.com/abdenlab/epifolio-notebooks && cd epifolio-notebooks
-uvx marimo run notebooks/nmf_explorer.py
+uvx marimo run notebooks/nmf_sample_explorer.py
 uvx marimo run notebooks/pca_hiplot.py
-uvx marimo run notebooks/higlass_browser.py
+uvx marimo run notebooks/higlass_explorer.py
 ```
 
 In both cases, `uv` reads PEP 723 metadata and installs `epifolio` from the git repo automatically.
 
 ## Molab Workflow
 
-1. Upload `notebooks/nmf_explorer.py`, `notebooks/pca_hiplot.py`, or `notebooks/higlass_browser.py` to Molab
+1. Upload `notebooks/nmf_sample_explorer.py`, `notebooks/pca_hiplot.py`, or `notebooks/higlass_explorer.py` to Molab
 2. PEP 723 handles dependency installation, including `epifolio` from git
 3. Shared configs and small datasets are loaded from `epifolio/assets`
 

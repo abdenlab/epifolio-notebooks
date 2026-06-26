@@ -120,7 +120,7 @@ def _(analysis_name, analysis_sources, pd):
 
 @app.cell(hide_code=True)
 def _(mo):
-    title = mo.md("# Explore cancer cCRE signatures")
+    title = mo.md("# Explore cancer sample cCRE activity signatures")
     title
     return
 

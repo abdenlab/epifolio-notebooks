@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -393,17 +393,21 @@ name = "epifolio"
 version = "0.1.0"
 source = { editable = "lib" }
 dependencies = [
+    { name = "bioframe" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "plotly" },
+    { name = "polars" },
     { name = "pyarrow" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "bioframe", specifier = ">=0.8.0" },
     { name = "numpy", specifier = ">=2.3,<3" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "plotly", specifier = ">=6.1.2" },
+    { name = "polars", specifier = ">=1.42.0" },
     { name = "pyarrow", specifier = ">=18.0.0" },
 ]
 
@@ -440,8 +444,8 @@ requires-dist = [
     { name = "epifolio", editable = "lib" },
     { name = "grandscatter", specifier = ">=0.2.1" },
     { name = "higlass-python", specifier = ">=1.4.0" },
-    { name = "jupyter-scatter", extras = ["all"], specifier = ">=0.22.0" },
-    { name = "marimo", specifier = ">=0.20.2" },
+    { name = "jupyter-scatter", extras = ["all"], specifier = ">=1.0.1" },
+    { name = "marimo", specifier = ">=0.21.1" },
     { name = "numpy", specifier = ">=2.3,<3" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "plotly", specifier = ">=6.1.2" },
@@ -517,7 +521,7 @@ name = "geoindex-rs"
 version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "arro3-core" },
+    { name = "arro3-core", marker = "python_full_version < '3.14'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f7/da/6b21231e3435199597faf4f287578a730af96d8d72451af7ec609b96f4f0/geoindex_rs-0.2.1-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:a50c26f5fae0d1ced2f0aa7e6160ae378e500309b6185077bcd73e5af3da14b5", size = 2321294, upload-time = "2025-09-05T22:51:38.425Z" },
@@ -764,11 +768,11 @@ wheels = [
 
 [[package]]
 name = "jupyter-scatter"
-version = "0.22.3"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anywidget" },
-    { name = "geoindex-rs" },
+    { name = "geoindex-rs", marker = "python_full_version < '3.14'" },
     { name = "ipython", version = "9.12.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "ipython", version = "9.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "ipywidgets" },
@@ -780,9 +784,9 @@ dependencies = [
     { name = "scipy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/53/88/bb77c7288c90134019979d9a723fe22720c0cb38aca5709af63cc9871613/jupyter_scatter-0.22.3.tar.gz", hash = "sha256:fde8655ba3dd784eddb3fcb7887f7df845243e70e2d486ca794ea6498879bcf3", size = 2214974, upload-time = "2026-03-14T04:34:49.315Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/72/40/0e19cb82d2f09396ea5347cde01f2c50fca29b31cae049c7902f6eba3a43/jupyter_scatter-1.0.1.tar.gz", hash = "sha256:5782bfc979506308ece1802ecb811de8b1b49a9f8e114a51fccd74f0cb7dce24", size = 2273719, upload-time = "2026-05-11T03:08:03.807Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/2d/fd6efe1a7b00828912190ae947c93013c412816b89c185521aa7e6a528f1/jupyter_scatter-0.22.3-py3-none-any.whl", hash = "sha256:456dd99fac9fbd8e169e7bef247bfcce02ff5d27a5cc9a53b5effca5e3035bf6", size = 1659869, upload-time = "2026-03-14T04:34:47.708Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/3d/7c407eb590beb82e47e90d2bfc5e974939219afc05dcf4bf2bbd50202de1/jupyter_scatter-1.0.1-py3-none-any.whl", hash = "sha256:79cc8d18b2c743ba5ac56706c7aa4decddc91adbfbf9b8b445173f9de5b2ca8f", size = 1866041, upload-time = "2026-05-11T03:08:01.968Z" },
 ]
 
 [package.optional-dependencies]

@@ -28,11 +28,11 @@ def _():
     import jscatter
     import marimo as mo
     import numpy as np
-    import pandas as pd
+    import pyarrow.compute as pc
 
     import epifolio.cnv as cnv
 
-    return cnv, jscatter, mo, np, pd
+    return cnv, jscatter, mo, np, pc
 
 
 @app.cell
@@ -221,9 +221,25 @@ def _(biosample, read_row):
 
 
 @app.cell
-def _(active_cn, cn_order, cnv, jscatter, mo, p6_row):
-    # D6: density_table now does np.unique aggregation, producing fewer rows
-    dens_tbl = cnv.density_table(p6_row, active_cn, cn_order)
+def _(mo):
+    # M2b: mo.state hoisted into its own cell with no dependency on active_cn,
+    # so a panel-3 click no longer recreates it and silently drops the
+    # selection (F2). Keyed by (cancer_z, healthy_z) bin coordinate rather
+    # than positional index, so it also survives a dens_tbl/cn_tbl6 rebuild
+    # on a CN-filter change instead of addressing the wrong points
+    # (cnvpostpr.md §7 decision 4) — this is the single selection shared by
+    # panels 5 and 6 (M3).
+    get_sel_bins, set_sel_bins = mo.state(frozenset())
+    return get_sel_bins, set_sel_bins
+
+
+@app.cell
+def _(active_cn, cn_order, cnv, jscatter, p6_row):
+    # D6/M3a: density_table_with_index does the same np.unique aggregation as
+    # density_table, but also returns inv — the panel-6-row -> panel-5-bin map
+    # that used to be discarded (cnvpostpr.md §3).
+    density = cnv.density_table_with_index(p6_row, active_cn, cn_order)
+    dens_tbl, dens_inv = density.table, density.inv
 
     scatter5 = jscatter.Scatter(
         data=dens_tbl,  # E3: pass Arrow table directly
@@ -243,42 +259,18 @@ def _(active_cn, cn_order, cnv, jscatter, mo, p6_row):
         lasso_initiator=True,
     )
 
-    # H7: reactive selection — mo.state + widget.observe + mo.ui.anywidget
-    get_sel5, set_sel5 = mo.state(None)
-    scatter5.widget.observe(lambda change: set_sel5(change["new"]), names="selection")
-    panel5_widget = mo.ui.anywidget(scatter5.widget)
+    # M2a: the raw widget, not mo.ui.anywidget. mo.ui.anywidget turns
+    # jscatter's synced `hovering` trait into a reactive dependency, forcing a
+    # kernel round-trip and a full remount of both scatter canvases on every
+    # mouse move (cnvpostpr.md F1). Selection still reaches the kernel via
+    # .observe() below, which does not go through mo.ui.anywidget at all.
+    panel5_widget = scatter5.widget
 
-    return dens_tbl, get_sel5, panel5_widget, scatter5, set_sel5
-
-
-@app.cell
-def _(dens_tbl, get_sel5, lasso_indices, mo, panel5_widget):
-    sel5_raw = get_sel5()
-    sel5 = lasso_indices(sel5_raw)
-
-    # D25: show whole-sample stats until user lassoes
-    selected_dens = dens_tbl.take(sel5) if len(sel5) else dens_tbl
-
-    # cCRE-weighted gain fraction
-    cz5 = selected_dens["cancer_z"].to_pylist()
-    hz5 = selected_dens["healthy_z"].to_pylist()
-    w5 = selected_dens["cCREs"].to_pylist()
-    total_w5 = sum(w5) if w5 else 1
-    gain_w5 = sum(wi for ci, hi, wi in zip(cz5, hz5, w5) if ci > hi)
-    gain5 = float(gain_w5) / max(total_w5, 1)
-
-    readout5 = mo.hstack(
-        [
-            mo.stat(value=f"{sum(w5):,}", label="cCREs in selection"),
-            mo.stat(value=f"{gain5:.1%}", label="gain fraction (cCRE-weighted)"),
-        ]
-    )
-    panel5 = mo.vstack([panel5_widget, readout5], gap=1)
-    return cz5, gain5, gain_w5, hz5, panel5, readout5, sel5, sel5_raw, selected_dens, total_w5, w5
+    return dens_inv, dens_tbl, panel5_widget, scatter5
 
 
 @app.cell
-def _(active_cn, cn_order, cnv, jscatter, mo, p6_row):
+def _(active_cn, cn_order, cnv, jscatter, p6_row):
     # D5: add color_map with correct palette hexes
     palette6 = cnv.cn_colors(cn_order)
     color_map6 = {cnv.cn_label(c): hex_val for c, hex_val in palette6.items()}
@@ -303,65 +295,145 @@ def _(active_cn, cn_order, cnv, jscatter, mo, p6_row):
         lasso_initiator=True,
     )
 
-    # H7: reactive selection for panel 6
-    get_sel6, set_sel6 = mo.state(None)
-    scatter6.widget.observe(lambda change: set_sel6(change["new"]), names="selection")
-    panel6_widget = mo.ui.anywidget(scatter6.widget)
+    # M2a: raw widget — see panel5_widget above
+    panel6_widget = scatter6.widget
 
-    return cn_tbl6, color_map6, get_sel6, palette6, panel6_widget, scatter6, set_sel6
+    return cn_tbl6, color_map6, palette6, panel6_widget, scatter6
 
 
 @app.cell
-def _(cn_tbl6, get_sel6, lasso_indices, mo, panel6_widget, pd):
-    sel6_raw = get_sel6()
-    sel6 = lasso_indices(sel6_raw)
+def _(dens_tbl, lasso_indices, panel5_widget, set_sel_bins):
+    # A panel-5 lasso sets the shared selection directly, as bin coordinates.
+    def sync5(change):
+        idx = lasso_indices(change.get("new"))
+        rows = dens_tbl.take(idx) if len(idx) else dens_tbl.slice(0, 0)
+        set_sel_bins(frozenset(zip(rows["cancer_z"].to_pylist(), rows["healthy_z"].to_pylist())))
 
-    # D25: show whole-sample stats until user lassoes
-    selected_cn6 = cn_tbl6.take(sel6) if len(sel6) else cn_tbl6
+    panel5_widget.observe(sync5, names="selection")
+    return (sync5,)
 
-    # cCRE-weighted counts6: aggregate cCREs per level
-    levels6 = selected_cn6["copy_number"].to_pylist()
-    ccres6 = selected_cn6["cCREs"].to_pylist()
-    agg6: dict[str, int] = {}
-    for lv6, cv6 in zip(levels6, ccres6):
-        agg6[lv6] = agg6.get(lv6, 0) + int(cv6)
-    counts6 = pd.DataFrame(
-        [{"copy_number": k, "cCREs": v} for k, v in sorted(agg6.items())]
+
+@app.cell
+def _(dens_inv, dens_tbl, lasso_indices, np, panel6_widget, set_sel_bins):
+    # M3b: a panel-6 lasso maps to panel-5 bins through dens_inv before
+    # joining the shared selection.
+    def sync6(change):
+        idx = lasso_indices(change.get("new"))
+        bin_pos = np.unique(dens_inv[idx]) if len(idx) else np.array([], dtype=np.int64)
+        rows = dens_tbl.take(bin_pos) if len(bin_pos) else dens_tbl.slice(0, 0)
+        set_sel_bins(frozenset(zip(rows["cancer_z"].to_pylist(), rows["healthy_z"].to_pylist())))
+
+    panel6_widget.observe(sync6, names="selection")
+    return (sync6,)
+
+
+@app.cell
+def _(cn_tbl6, dens_inv, dens_tbl, get_sel_bins, np):
+    # Resolve the shared bin-coordinate selection against the *current*
+    # dens_tbl/cn_tbl6 (rebuilt on every active_cn change). bin_pos indexes
+    # dens_tbl; cn6_pos indexes cn_tbl6 via dens_inv (M3c).
+    sel_bins = get_sel_bins()
+    if sel_bins:
+        pairs5 = list(zip(dens_tbl["cancer_z"].to_pylist(), dens_tbl["healthy_z"].to_pylist()))
+        bin_pos = np.array([i for i, pair in enumerate(pairs5) if pair in sel_bins], dtype=np.int64)
+    else:
+        bin_pos = np.array([], dtype=np.int64)
+    cn6_pos = np.flatnonzero(np.isin(dens_inv, bin_pos)) if len(bin_pos) else np.array([], dtype=np.int64)
+
+    # D25: show whole-sample stats/highlight until something is selected
+    selected_dens = dens_tbl.take(bin_pos) if len(bin_pos) else dens_tbl
+    selected_cn6 = cn_tbl6.take(cn6_pos) if len(cn6_pos) else cn_tbl6
+    return bin_pos, cn6_pos, selected_cn6, selected_dens
+
+
+@app.cell
+def _(bin_pos, panel5_widget, sel_bins):
+    # Apply the resolved selection back onto panel 5 — first render, a
+    # CN-filter rebuild, or a panel-6-driven cross-highlight (M3b) all land
+    # here. Guarded so a no-op assignment can't retrigger sync5 in a loop
+    # (matching nmf_sample_explorer.py:389-392).
+    _target = bin_pos.tolist() if len(sel_bins) else []
+    _current = panel5_widget.selection
+    if list([] if _current is None else _current) != _target:
+        panel5_widget.selection = _target
+    return
+
+
+@app.cell
+def _(cn6_pos, panel6_widget, sel_bins):
+    # M3c: apply the resolved selection back onto panel 6, same guard as panel 5.
+    _target = cn6_pos.tolist() if len(sel_bins) else []
+    _current = panel6_widget.selection
+    if list([] if _current is None else _current) != _target:
+        panel6_widget.selection = _target
+    return
+
+
+@app.cell
+def _(bin_pos, mo, pc, selected_cn6, selected_dens):
+    # M2c: Arrow compute instead of .to_pylist() + a Python loop — this runs
+    # on every legitimate lasso, not just the flicker-prone hover path.
+    total_cCREs = int((pc.sum(selected_dens["cCREs"]).as_py() or 0))
+    gain_cCREs = int(
+        pc.sum(
+            pc.if_else(
+                pc.greater(selected_dens["cancer_z"], selected_dens["healthy_z"]),
+                selected_dens["cCREs"],
+                0,
+            )
+        ).as_py()
+        or 0
     )
-    total6 = int(sum(agg6.values()))
+    gain_frac = gain_cCREs / total_cCREs if total_cCREs else 0.0
 
-    readout6 = mo.vstack(
+    counts_by_cn = (
+        selected_cn6.group_by("copy_number")
+        .aggregate([("cCREs", "sum")])
+        .rename_columns({"cCREs_sum": "cCREs"})
+        .sort_by("copy_number")
+        .to_pandas()
+    )
+
+    # M3d: one shared cCRE-weighted readout for the linked panel 5/6
+    # selection, replacing the two independent readouts.
+    readout56 = mo.vstack(
         [
-            mo.stat(value=f"{total6:,}", label="cCREs in selection"),
-            mo.ui.table(counts6, selection=None),
+            mo.hstack(
+                [
+                    mo.stat(value=f"{total_cCREs:,}", label="cCREs in selection"),
+                    mo.stat(value=f"{gain_frac:.1%}", label="gain fraction (cCRE-weighted)"),
+                    mo.stat(value=f"{len(bin_pos):,}", label="bins selected"),
+                ]
+            ),
+            mo.ui.table(counts_by_cn, selection=None),
         ],
         gap=1,
     )
-    panel6 = mo.vstack([panel6_widget, readout6], gap=1)
-    return (
-        agg6,
-        counts6,
-        cv6,
-        levels6,
-        lv6,
-        panel6,
-        readout6,
-        sel6,
-        sel6_raw,
-        selected_cn6,
-        total6,
-    )
+    return (readout56,)
 
 
 @app.cell
-def _(aliquot_dd, cancer_dd, mo, panel1, panel2, panel3, panel4, panel5, panel6, patient_dd):
+def _(
+    aliquot_dd,
+    cancer_dd,
+    mo,
+    panel1,
+    panel2,
+    panel3,
+    panel4,
+    panel5_widget,
+    panel6_widget,
+    patient_dd,
+    readout56,
+):
     mo.vstack(
         [
             mo.hstack([cancer_dd, patient_dd, aliquot_dd], justify="start", gap=1.5),
             panel1,
             panel2,
             mo.hstack([panel3, panel4], widths="equal", gap=1.5),
-            mo.hstack([panel5, panel6], widths="equal", gap=1.5),
+            mo.hstack([panel5_widget, panel6_widget], widths="equal", gap=1.5),
+            readout56,
         ],
         gap=2,
     )

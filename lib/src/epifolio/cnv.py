@@ -151,6 +151,14 @@ REMOTE = "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
 # Interim host. Delete this tier once REMOTE serves the payload; no other change needed.
 FALLBACK = "https://users.abdenlab.org/voy/itcr/epifolio/notebooks/cnv_ccre"
 
+# cCRE locus table (chrom/start/end/rDHS/cCRE/class), shared across every
+# *.ccre.pq embedding file and row-count-identical to the CNV payload's
+# n_ccre (cnvpostpr.md §4). Same local-else-canonical discovery as source();
+# no interim fallback host is known for this file yet.
+CCRE_INDEX_NAME = "tcga.atac.pca.ccre.pq"
+CCRE_INDEX_DIR = ASSETS / "data" / "ccre_index"
+CCRE_INDEX = "https://projects.abdenlab.org/itcr/epifolio/embeddings"
+
 
 def _reachable(url: str, timeout: float = 5.0) -> bool:
     """Return whether the canonical mirror is reachable."""
@@ -169,6 +177,53 @@ def source(name: str) -> str:
         return str(local)
     remote = f"{REMOTE}/{name}"
     return remote if _reachable(remote) else f"{FALLBACK}/{name}"
+
+
+def ccre_index_source() -> str:
+    """Use the packaged cCRE locus table if present, else the canonical embeddings host."""
+    local = CCRE_INDEX_DIR / CCRE_INDEX_NAME
+    if local.exists():
+        return str(local)
+    return f"{CCRE_INDEX}/{CCRE_INDEX_NAME}"
+
+
+_CCRE_META_COLUMNS = ["chrom", "start", "end", "rDHS", "cCRE", "class"]
+
+
+def load_loci(columns: Iterable[str] | None = None) -> pl.DataFrame:
+    """Load the per-cCRE locus table, resorted into genome-linear order.
+
+    Reads ``tcga.atac.pca.ccre.pq`` as delivered, selecting only the six
+    metadata columns shared by every ``*.ccre.pq`` embedding file
+    (chrom/start/end/rDHS/cCRE/class). The parquet's own chromosome order is
+    lexicographic (chr1, chr10, chr11, ...), not the karyotypic CHROMS order
+    the rest of this module uses — joining by row position would silently
+    mis-assign ~2.3M cCREs (cnvpostpr.md §4.3). The re-sort and the added
+    genome-linear ``pos`` column (comparable to panel 1/2 x-coordinates) are
+    computed here, once, at load time — never by re-sorting the source file.
+    """
+    df = pl.scan_parquet(ccre_index_source()).select(_CCRE_META_COLUMNS).collect()
+
+    chrom_rank = {chrom: i for i, chrom in enumerate(CHROMS)}
+    df = (
+        df.with_columns(pl.col("chrom").replace_strict(chrom_rank, return_dtype=pl.Int64).alias("_chrom_rank"))
+        .sort(["_chrom_rank", "start"])
+        .with_columns(
+            (
+                pl.col("chrom").replace_strict(CHROM_OFFSET, return_dtype=pl.Int64) + pl.col("start")
+            ).alias("pos")
+        )
+        .drop("_chrom_rank")
+    )
+
+    if columns is None:
+        return df
+    wanted = list(columns)
+    available = set(_CCRE_META_COLUMNS) | {"pos"}
+    missing = set(wanted) - available
+    if missing:
+        raise ValueError(f"load_loci columns must be a subset of {sorted(available)}; got extra {sorted(missing)}")
+    return df.select(wanted)
 
 
 def read_metadata(src: str) -> dict[str, str]:
@@ -338,7 +393,7 @@ def genome_layout(title: str, y_title: str, window: tuple[float, float] = FULL_G
             tickmode="array",
             tickvals=CHROM_TICKVALS,
             ticktext=CHROM_TICKTEXT,
-            title="Genomic position",
+            title="Chromosome",
             showgrid=False,
             zeroline=False,
             tickangle=0,
@@ -659,13 +714,22 @@ def panel_4(
 # ---------------------------------------------------------------------------
 # Panel 5 helper — aggregated density (src/panels.py:216-260)
 # ---------------------------------------------------------------------------
-def density_table(row: dict[str, object], active_cn: list[str], cn_order: list[str] | None = None) -> pa.Table:
-    """Panel 5 table: aggregated cancer-vs-healthy density for selected CN states.
+@dataclass(frozen=True)
+class DensityTable:
+    """Panel 5 table plus the bin assignment it aggregated from.
 
-    Transcribed from src/panels.py:216-260. Groups on the raw float pair (x, y)
-    rather than on rounded/binned values. Both axes are drawn from the same
-    GRID_CENTERS, so grouping on the raw float pair is bit-exact.
+    ``inv`` is a total map from panel-6 (filtered, active_cn-masked) row to
+    panel-5 bin index — the array ``np.unique(..., return_inverse=True)``
+    already computes and previously discarded. See cnvpostpr.md §3, M3a.
     """
+
+    table: pa.Table
+    inv: np.ndarray
+
+
+def _density_table_impl(
+    row: dict[str, object], active_cn: list[str], cn_order: list[str] | None = None
+) -> tuple[pa.Table, np.ndarray]:
     x = np.asarray(list(row["scatter_cn_x"]), dtype=float)
     y = np.asarray(list(row["scatter_cn_y"]), dtype=float)
     lvl = np.asarray([cn_label(lv) for lv in row["scatter_cn_level"]])
@@ -674,12 +738,13 @@ def density_table(row: dict[str, object], active_cn: list[str], cn_order: list[s
     keep = np.isin(lvl, [cn_label(c) for c in active_cn])
 
     if not keep.any():
-        return pa.table({
+        empty = pa.table({
             "cancer_z": pa.array([], type=pa.float64()),
             "healthy_z": pa.array([], type=pa.float64()),
             "cCREs": pa.array([], type=pa.int64()),
             "log_cCREs": pa.array([], type=pa.float64()),
         })
+        return empty, np.array([], dtype=np.int64)
 
     x, y, v = x[keep], y[keep], v[keep]
 
@@ -690,12 +755,32 @@ def density_table(row: dict[str, object], active_cn: list[str], cn_order: list[s
     np.add.at(agg_v, inv, v)
 
     log_cCREs = np.log1p(agg_v.astype(float))
-    return pa.table({
+    table = pa.table({
         "cancer_z": uniq[:, 0],
         "healthy_z": uniq[:, 1],
         "cCREs": agg_v,
         "log_cCREs": log_cCREs,
     })
+    return table, inv
+
+
+def density_table(row: dict[str, object], active_cn: list[str], cn_order: list[str] | None = None) -> pa.Table:
+    """Panel 5 table: aggregated cancer-vs-healthy density for selected CN states.
+
+    Transcribed from src/panels.py:216-260. Groups on the raw float pair (x, y)
+    rather than on rounded/binned values. Both axes are drawn from the same
+    GRID_CENTERS, so grouping on the raw float pair is bit-exact.
+    """
+    table, _ = _density_table_impl(row, active_cn, cn_order)
+    return table
+
+
+def density_table_with_index(
+    row: dict[str, object], active_cn: list[str], cn_order: list[str] | None = None
+) -> DensityTable:
+    """Like density_table, but also returns the panel-6-row -> panel-5-bin map."""
+    table, inv = _density_table_impl(row, active_cn, cn_order)
+    return DensityTable(table=table, inv=inv)
 
 
 # ---------------------------------------------------------------------------
@@ -720,6 +805,9 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
 
 __all__ = [
     "CANCER_BLUE",
+    "CCRE_INDEX",
+    "CCRE_INDEX_DIR",
+    "CCRE_INDEX_NAME",
     "CHROMS",
     "CHROM_MID",
     "CHROM_OFFSET",
@@ -727,6 +815,7 @@ __all__ = [
     "DATA_DIR",
     "DISTRIBUTIONS",
     "Dataset",
+    "DensityTable",
     "FALLBACK",
     "FULL_GENOME",
     "GENOME_LEN",
@@ -746,11 +835,14 @@ __all__ = [
     "cn_colors",
     "cn_label",
     "cn_table",
+    "ccre_index_source",
     "cols_for",
     "density_table",
+    "density_table_with_index",
     "file_constants",
     "genome_layout",
     "load_cohort",
+    "load_loci",
     "load_panel",
     "open_dataset",
     "panel_1",

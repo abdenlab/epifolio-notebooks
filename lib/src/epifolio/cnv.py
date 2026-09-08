@@ -40,6 +40,9 @@ HIST2D_SHAPE = [N_GRID, N_GRID]
 
 TRACKS = "summary_genome_tracks.parquet"
 DISTRIBUTIONS = "summary_signal_distributions.parquet"
+CCRE_REFERENCE = "ccre_reference.parquet"
+MEMBERSHIP = "summary_ccre_membership.parquet"
+MEMBERSHIP_SCHEMA_VERSION = "1"
 
 
 def cols_for(tags: Mapping[str, str], *panels: str) -> list[str]:
@@ -133,6 +136,17 @@ def cn_label(level: object) -> str:
         return text
 
 
+def grid_bin_id(x: Iterable[float], y: Iterable[float]) -> np.ndarray:
+    """Return stable row/bin IDs for the published 192x192 grid centers."""
+    x_array = np.asarray(list(x), dtype=float)
+    y_array = np.asarray(list(y), dtype=float)
+    x_idx = np.searchsorted(GRID_EDGES, x_array, side="right") - 1
+    y_idx = np.searchsorted(GRID_EDGES, y_array, side="right") - 1
+    if np.any((x_idx < 0) | (x_idx >= N_GRID) | (y_idx < 0) | (y_idx >= N_GRID)):
+        raise ValueError("z-score coordinates fall outside the published grid")
+    return (y_idx * N_GRID + x_idx).astype(np.int64)
+
+
 def cn_colors(levels: Iterable[object]) -> dict[str, str]:
     """Return a {label: hex} map for copy-number levels using the packaged JSON map.
 
@@ -179,6 +193,20 @@ def source(name: str) -> str:
     return remote if _reachable(remote) else f"{FALLBACK}/{name}"
 
 
+def membership_source() -> str:
+    """Resolve the per-biosample copy-number membership sidecar.
+
+    The sidecar is intentionally separate from the cCRE reference table and
+    published raster payloads.
+    """
+    return source(MEMBERSHIP)
+
+
+def ccre_reference_source() -> str:
+    """Resolve the stable cCRE reference table used by membership arrays."""
+    return source(CCRE_REFERENCE)
+
+
 def ccre_index_source() -> str:
     """Use the packaged cCRE locus table if present, else the canonical embeddings host."""
     local = CCRE_INDEX_DIR / CCRE_INDEX_NAME
@@ -203,6 +231,10 @@ def load_loci(columns: Iterable[str] | None = None) -> pl.DataFrame:
     computed here, once, at load time — never by re-sorting the source file.
     """
     df = pl.scan_parquet(ccre_index_source()).select(_CCRE_META_COLUMNS).collect()
+    # Preserve the delivered source identity before sorting into genome order.
+    # The split membership artifact is joined by its cCRE reference identifier,
+    # not by this post-sort row position.
+    df = df.with_row_index("cCRE_index")
 
     chrom_rank = {chrom: i for i, chrom in enumerate(CHROMS)}
     df = (
@@ -219,11 +251,130 @@ def load_loci(columns: Iterable[str] | None = None) -> pl.DataFrame:
     if columns is None:
         return df
     wanted = list(columns)
-    available = set(_CCRE_META_COLUMNS) | {"pos"}
+    available = set(_CCRE_META_COLUMNS) | {"cCRE_index", "pos"}
     missing = set(wanted) - available
     if missing:
         raise ValueError(f"load_loci columns must be a subset of {sorted(available)}; got extra {sorted(missing)}")
     return df.select(wanted)
+
+
+def load_ccre_reference(src: str | None = None) -> pl.DataFrame:
+    """Load the stable row-indexed cCRE reference for membership arrays."""
+    src = src or ccre_reference_source()
+    try:
+        metadata = read_metadata(src)
+        if metadata.get("schema_version") != MEMBERSHIP_SCHEMA_VERSION:
+            raise ValueError(
+                f"cCRE reference schema_version={metadata.get('schema_version')!r}; "
+                f"expected {MEMBERSHIP_SCHEMA_VERSION!r}"
+            )
+        if str(metadata.get("n_genome_bins")) != "5000":
+            raise ValueError("cCRE reference n_genome_bins must be 5000")
+        if metadata.get("row_order") != (
+            "canonical -- row position is the join key "
+            "summary_ccre_membership.parquet's copy_number_code arrays are aligned to"
+        ):
+            raise ValueError("cCRE reference row-order metadata does not match membership contract")
+        reference = (
+            pl.scan_parquet(src)
+            .select(["cCRE_name", "x_bin"])
+            .collect()
+            .with_row_index("reference_index")
+        )
+    except FileNotFoundError:
+        raise
+    except Exception as exc:
+        raise ValueError(f"invalid cCRE reference artifact at {src!r}") from exc
+
+    if reference["cCRE_name"].n_unique() != reference.height:
+        raise ValueError("cCRE reference cCRE_name values must be unique")
+    x_bin = np.asarray(reference["x_bin"].to_numpy(), dtype=np.int64)
+    if np.any((x_bin < 0) | (x_bin >= 5000)):
+        raise ValueError("cCRE reference x_bin contains a value outside 0..4999")
+    return reference
+
+
+def load_membership(
+    biosample: str,
+    src: str | None = None,
+    *,
+    reference: pl.DataFrame | None = None,
+    expected_n_ccre: int | None = None,
+    expected_cn_order: Iterable[object] | None = None,
+) -> pl.DataFrame:
+    """Load one biosample's CN codes and attach them to the cCRE reference.
+
+    ``copy_number_code[i]`` is aligned to row ``i`` of
+    ``ccre_reference.parquet``. The returned frame contains the reference
+    row, ``cCRE_name``, ``x_bin``, ``copy_number_code`` and normalized
+    ``copy_number``. It must be joined to the locus table by
+    ``cCRE_name == rDHS`` rather than by row position.
+    """
+    src = src or membership_source()
+    reference = reference if reference is not None else load_ccre_reference()
+    try:
+        metadata = read_metadata(src)
+    except Exception as exc:
+        raise FileNotFoundError(
+            f"CNV cCRE membership artifact is unavailable at {src!r}; "
+            "provide the split cCRE membership artifacts before enabling identity resolution"
+        ) from exc
+
+    schema_version = metadata.get("schema_version")
+    if schema_version != MEMBERSHIP_SCHEMA_VERSION:
+        raise ValueError(
+            f"membership schema_version={schema_version!r}; "
+            f"expected {MEMBERSHIP_SCHEMA_VERSION!r}"
+        )
+    if metadata.get("ccre_reference_file") != CCRE_REFERENCE:
+        raise ValueError("membership cCRE reference file does not match the notebook contract")
+    if metadata.get("join_key") != (
+        "position -- copy_number_code[i] belongs to ccre_reference.parquet row i"
+    ):
+        raise ValueError("membership join-key metadata does not match the notebook contract")
+
+    expected_order = [cn_label(level) for level in (expected_cn_order or [])]
+    declared_order = metadata.get("cn_order")
+    if not declared_order:
+        raise ValueError("membership is missing cn_order metadata")
+    try:
+        raw_declared = (
+            declared_order
+            if isinstance(declared_order, (list, tuple))
+            else json.loads(declared_order)
+        )
+        declared = [cn_label(level) for level in raw_declared]
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("membership cn_order is not valid JSON") from exc
+    if expected_order and declared != expected_order:
+        raise ValueError("membership cn_order does not match the CNV payload")
+
+    frame = (
+        pl.scan_parquet(src)
+        .filter(pl.col("biosample") == biosample)
+        .select(["biosample", "copy_number_code"])
+        .collect()
+    )
+    if frame.height != 1:
+        raise KeyError(f"membership artifact has {frame.height} rows for biosample {biosample!r}; expected 1")
+
+    copy_number_code = list(frame.row(0, named=True)["copy_number_code"])
+    n_ccre = reference.height
+    if expected_n_ccre is not None and n_ccre != expected_n_ccre:
+        raise ValueError(f"cCRE reference n_ccre={n_ccre}; expected {expected_n_ccre}")
+    if len(copy_number_code) != n_ccre:
+        raise ValueError(
+            f"membership copy_number_code length={len(copy_number_code)}; expected {n_ccre}"
+        )
+
+    codes = np.asarray(copy_number_code, dtype=np.int64)
+    if np.any((codes < 0) | (codes >= len(declared))):
+        raise ValueError("membership copy_number_code contains an unknown code")
+
+    return reference.with_columns(
+        pl.Series("copy_number_code", codes, dtype=pl.UInt8),
+        pl.Series("copy_number", [declared[int(code)] for code in codes]),
+    )
 
 
 def read_metadata(src: str) -> dict[str, str]:
@@ -741,6 +892,7 @@ def _density_table_impl(
         empty = pa.table({
             "cancer_z": pa.array([], type=pa.float64()),
             "healthy_z": pa.array([], type=pa.float64()),
+            "bin_id": pa.array([], type=pa.int64()),
             "cCREs": pa.array([], type=pa.int64()),
             "log_cCREs": pa.array([], type=pa.float64()),
         })
@@ -758,6 +910,7 @@ def _density_table_impl(
     table = pa.table({
         "cancer_z": uniq[:, 0],
         "healthy_z": uniq[:, 1],
+        "bin_id": grid_bin_id(uniq[:, 0], uniq[:, 1]),
         "cCREs": agg_v,
         "log_cCREs": log_cCREs,
     })
@@ -795,9 +948,11 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
     lvl = np.asarray([cn_label(lv) for lv in lvl_raw])
 
     keep = np.isin(lvl, [cn_label(c) for c in active_cn])
+    bin_ids = grid_bin_id(x, y)
     return pa.table({
         "cancer_z": x[keep],
         "healthy_z": y[keep],
+        "bin_id": bin_ids[keep],
         "copy_number": lvl[keep],
         "cCREs": v[keep],
     })
@@ -805,6 +960,7 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
 
 __all__ = [
     "CANCER_BLUE",
+    "CCRE_REFERENCE",
     "CCRE_INDEX",
     "CCRE_INDEX_DIR",
     "CCRE_INDEX_NAME",
@@ -823,6 +979,8 @@ __all__ = [
     "HEALTHY_ORANGE",
     "HIST2D_SHAPE",
     "MISSING_GREY",
+    "MEMBERSHIP",
+    "MEMBERSHIP_SCHEMA_VERSION",
     "N_GRID",
     "N_VIOLIN_BINS",
     "REMOTE",
@@ -835,6 +993,7 @@ __all__ = [
     "cn_colors",
     "cn_label",
     "cn_table",
+    "ccre_reference_source",
     "ccre_index_source",
     "cols_for",
     "density_table",
@@ -842,8 +1001,12 @@ __all__ = [
     "file_constants",
     "genome_layout",
     "load_cohort",
+    "load_ccre_reference",
+    "load_membership",
     "load_loci",
     "load_panel",
+    "grid_bin_id",
+    "membership_source",
     "open_dataset",
     "panel_1",
     "panel_2",

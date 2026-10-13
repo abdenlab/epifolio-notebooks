@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import json
-import urllib.request
 from dataclasses import dataclass
 from importlib.metadata import files
 from itertools import accumulate
@@ -160,37 +159,23 @@ def cn_colors(levels: Iterable[object]) -> dict[str, str]:
 # Payload discovery and panel reads
 # ---------------------------------------------------------------------------
 DATA_DIR = ASSETS / "data" / "cnv_ccre"
-# Canonical mirror. Not yet serving the payload, so source() falls through to FALLBACK.
+# Canonical mirror.
 REMOTE = "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
-# Interim host. Delete this tier once REMOTE serves the payload; no other change needed.
-FALLBACK = "https://users.abdenlab.org/voy/itcr/epifolio/notebooks/cnv_ccre"
 
 # cCRE locus table (chrom/start/end/rDHS/cCRE/class), shared across every
 # *.ccre.pq embedding file and row-count-identical to the CNV payload's
-# n_ccre (cnvpostpr.md §4). Same local-else-canonical discovery as source();
-# no interim fallback host is known for this file yet.
+# n_ccre (cnvpostpr.md §4). Same local-else-canonical discovery as source().
 CCRE_INDEX_NAME = "tcga.atac.pca.ccre.pq"
 CCRE_INDEX_DIR = ASSETS / "data" / "ccre_index"
 CCRE_INDEX = "https://projects.abdenlab.org/itcr/epifolio/embeddings"
 
 
-def _reachable(url: str, timeout: float = 5.0) -> bool:
-    """Return whether the canonical mirror is reachable."""
-    try:
-        request = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status == 200
-    except Exception:
-        return False
-
-
 def source(name: str) -> str:
-    """Use the payload bundled with the installed package, else canonical mirror, else fallback."""
+    """Use the payload bundled with the installed package, else the canonical mirror."""
     local = DATA_DIR / name
     if local.exists():
         return str(local)
-    remote = f"{REMOTE}/{name}"
-    return remote if _reachable(remote) else f"{FALLBACK}/{name}"
+    return f"{REMOTE}/{name}"
 
 
 def membership_source() -> str:
@@ -972,7 +957,6 @@ __all__ = [
     "DISTRIBUTIONS",
     "Dataset",
     "DensityTable",
-    "FALLBACK",
     "FULL_GENOME",
     "GENOME_LEN",
     "GRID_EDGES",

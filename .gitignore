@@ -37,6 +37,6 @@ cnvintegration.md
 agent-state/
 .agents/ACE/
 
-# CNV/cCRE payload is served remotely (epifolio.cnv.data:REMOTE/FALLBACK).
+# CNV/cCRE payload is served remotely (epifolio.cnv.REMOTE).
 # A local copy here is honoured by source() as a dev convenience, never tracked.
 lib/src/epifolio/assets/data/cnv_ccre/

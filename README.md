@@ -80,11 +80,15 @@ Some things can be fetched lazily by `epifolio.data_utils` on first access, cach
 
 In other cases, we may access large assets like Parquet files using appropriate tools like Polars that can handle streaming and random access as needed directly from URLs.
 
+The CNV/cCRE explorer reads its two-file Parquet payload (~108 MB) remotely rather than bundling it: `epifolio.cnv.source()` prefers a package-local copy under `lib/src/epifolio/assets/data/cnv_ccre/` if one is present, else the canonical mirror at `https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre/`. Polars range-reads the columns each panel needs, so no full download occurs.
+
 ## Notebook surface
 
 - `notebooks/nmf_sample_explorer.py` — multi-analysis TCGA NMF explorer with linked UMAP, heatmap, grandscatter, and metadata views
 - `notebooks/pca_hiplot.py` — PCA result explorer with HiPlot and linked metadata views
 - `notebooks/higlass_explorer.py` — packaged HiGlass browser for the published multivec viewconfig
+- `notebooks/cnv_ccre_explorer.py` — per-patient CNV/cCRE dashboard with genome tracks, copy-number filtering, and selection readouts.
+  `marimo export html` is currently broken for this notebook (upstream marimo bug in `_messaging/notification.py` — crashes after all cells run); use `marimo run`/`marimo edit`, not `export`.
 
 ## Developer Workflow
 
@@ -92,9 +96,10 @@ In other cases, we may access large assets like Parquet files using appropriate 
 git clone https://github.com/abdenlab/epifolio-notebooks
 cd epifolio-notebooks
 uv sync                                          # Install deps (epifolio as editable)
-uv run marimo edit notebooks/nmf_sample_explorer.py     # Dev with hot reload
-uv run marimo edit notebooks/pca_hiplot.py
-uv run marimo edit notebooks/higlass_explorer.py
+uv run marimo edit --no-sandbox notebooks/nmf_sample_explorer.py     # Dev with hot reload
+uv run marimo edit --no-sandbox notebooks/pca_hiplot.py
+uv run marimo edit --no-sandbox notebooks/higlass_explorer.py
+uv run marimo edit --no-sandbox notebooks/cnv_ccre_explorer.py
 ```
 
 The root `pyproject.toml` includes `epifolio` as an editable dependency (`lib/`), so changes to shared modules are reflected immediately without reinstalling.
@@ -106,15 +111,17 @@ The root `pyproject.toml` includes `epifolio` as an editable dependency (`lib/`)
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/nmf_sample_explorer.py
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/pca_hiplot.py
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/higlass_explorer.py
+uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/cnv_ccre_explorer.py
 
 # Option B: Clone and run
 git clone https://github.com/abdenlab/epifolio-notebooks && cd epifolio-notebooks
-uvx marimo run notebooks/nmf_sample_explorer.py
-uvx marimo run notebooks/pca_hiplot.py
-uvx marimo run notebooks/higlass_explorer.py
+uv run marimo run --no-sandbox notebooks/nmf_sample_explorer.py
+uv run marimo run --no-sandbox notebooks/pca_hiplot.py
+uv run marimo run --no-sandbox notebooks/higlass_explorer.py
+uv run marimo run --no-sandbox notebooks/cnv_ccre_explorer.py
 ```
 
-In both cases, `uv` reads PEP 723 metadata and installs `epifolio` from the git repo automatically.
+Option A reads PEP 723 metadata and installs `epifolio` from the git repo automatically via the sandbox prompt — answer `y` when asked. Option B runs against the cloned project's own `.venv` instead (`--no-sandbox` skips the prompt); never answer `y` there, since accepting the sandbox re-resolves `epifolio` from the git URL and can shadow local edits under `lib/`.
 
 ## Molab Workflow
 

@@ -3,14 +3,40 @@ __pycache__/
 __marimo__/
 *.py[cod]
 *.egg-info/
-.ruff_cache/
 dist/
 build/
 
 # Virtual environments
 .venv/
+venv/
+env/
+ENV/
+
+# Environment files
+.env
+.env.*
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.uv-cache/
+.ipynb_checkpoints/
+
+# Editor / agent scratch
+.claude
 
 # OS
 .DS_Store
 
-.claude
+# Working notes — porting scratch, not part of the published notebooks
+cnvhardening.md
+cnvintegration.md
+
+# ACE agent state — local only
+agent-state/
+.agents/ACE/
+
+# CNV/cCRE payload is served remotely (epifolio.cnv.REMOTE).
+# A local copy here is honoured by source() as a dev convenience, never tracked.
+lib/src/epifolio/assets/data/cnv_ccre/

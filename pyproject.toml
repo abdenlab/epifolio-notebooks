@@ -9,8 +9,8 @@ dependencies = [
     "anywidget>=0.9.18",
     "bioframe>=0.8.0",
     "higlass-python>=1.4.0",
-    "jupyter-scatter[all]>=0.22.0",
-    "marimo>=0.20.2",
+    "jupyter-scatter[all]>=1.0.1",
+    "marimo>=0.21.1",
     "numpy>=2.3,<3",
     "pandas>=3.0.0",
     "pyarrow>=18.0.0",
@@ -28,3 +28,6 @@ epifolio = { path = "lib/", editable = true }
 dev = [
     "ruff>=0.15.8",
 ]
+
+[tool.marimo.runtime]
+output_max_bytes = 50_000_000

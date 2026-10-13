@@ -16,5 +16,16 @@ dependencies = [
     "plotly>=6.1.2",
 ]
 
+[project.optional-dependencies]
+# epifolio.tcpa reads AnnData/Zarr stores over HTTP. AnnData 0.13 needs
+# Python 3.12, so the markers keep the base package installable on 3.11.
+tcpa = [
+    "anndata>=0.13.4,<0.14; python_version >= '3.12'",
+    "zarr>=3.1.5,<4; python_version >= '3.12'",
+    "scipy>=1.17.1,<1.18; python_version >= '3.12'",
+    "fsspec>=2026.9.0; python_version >= '3.12'",
+    "aiohttp>=3.14; python_version >= '3.12'",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/epifolio"]

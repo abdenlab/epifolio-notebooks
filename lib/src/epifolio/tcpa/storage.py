@@ -17,7 +17,8 @@ def named_layer_names(data):
 
 def _standalone(path, group):
     if ANALYSES not in group['uns']:
-        return ad.read_zarr(path)
+        # AnnData accepts a local path or a URL string, not an arbitrary PathLike.
+        return ad.read_zarr(str(path))
     parts = {name: ad.io.read_elem(group[name])
              for name in ('X', 'obs', 'var', 'layers', 'obsm', 'varm', 'obsp', 'varp') if name in group}
     parts['uns'] = {name: ad.io.read_elem(group['uns'][name]) for name in group['uns'] if name != ANALYSES}

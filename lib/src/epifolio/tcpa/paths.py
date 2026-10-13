@@ -1,10 +1,61 @@
-"""Resolve explicit local data without downloading or guessing dataset identity."""
+"""Resolve the TCPA data source: explicit local data, else the hosted release."""
 import os
 from pathlib import Path
 import tomllib
+import urllib.request
 
 # Dataset-specific artifact paths belong to the catalog and are checked by loaders.
 REQUIRED_DATA = ('manifest.parquet',)
+# Hosted release: the same layout as a local data directory, read over HTTP.
+REMOTE = 'https://users.abdenlab.org/voy/itcr/epifolio/notebooks/tcpa'
+# A checkout of the source project keeps its own local data and never reads REMOTE.
+SOURCE_PROJECT = 'dev-tcpa'
+TIMEOUT = 30
+
+
+class RemotePath(os.PathLike):
+    """The subset of Path that the loaders use, over an HTTP data root.
+
+    HTTP errors propagate: a missing remote object is a failure, never a
+    reason to try another source.
+    """
+
+    def __init__(self, url):
+        self.url = str(url).rstrip('/')
+
+    def __str__(self):
+        return self.url
+
+    def __repr__(self):
+        return f'RemotePath({self.url!r})'
+
+    def __fspath__(self):
+        return self.url
+
+    def __truediv__(self, name):
+        return RemotePath(f'{self.url}/{name}')
+
+    @property
+    def name(self):
+        return self.url.rsplit('/', 1)[-1]
+
+    def resolve(self):
+        return self
+
+    def is_relative_to(self, root):
+        return self.url.startswith(str(root).rstrip('/') + '/')
+
+    def exists(self):
+        request = urllib.request.Request(self.url, method='HEAD')
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            return response.status == 200
+
+    def read_bytes(self):
+        with urllib.request.urlopen(self.url, timeout=TIMEOUT) as response:
+            return response.read()
+
+    def read_text(self):
+        return self.read_bytes().decode()
 
 
 def _validate(directory: Path, required: tuple[str, ...], source: str) -> Path:
@@ -24,14 +75,27 @@ def _validate(directory: Path, required: tuple[str, ...], source: str) -> Path:
     return directory
 
 
-def resolve_data_dir(*, anchor: str | Path | None = None,
-                     required: tuple[str, ...] = REQUIRED_DATA) -> Path:
-    """Resolve override > explicit caller anchor > cwd's nearest project root.
+def _project(start: Path) -> tuple[Path, str | None] | None:
+    """Return the nearest ancestor project directory and its declared name."""
+    for directory in (start, *start.parents):
+        config = directory / 'pyproject.toml'
+        if config.is_file():
+            with config.open('rb') as stream:
+                return directory, tomllib.load(stream).get('project', {}).get('name')
+    return None
 
-    An anchor is an existing notebook file or its directory. An explicit choice
-    never falls back. Without an anchor, the nearest ancestor pyproject.toml must
-    identify dev-tcpa; this prevents selecting an unrelated cwd/data directory.
-    Artifact validation checks file/store presence, not scientific correctness.
+
+def resolve_data_dir(*, anchor: str | Path | None = None,
+                     required: tuple[str, ...] = REQUIRED_DATA) -> Path | RemotePath:
+    """Resolve override > caller anchor > cwd's source project > hosted release.
+
+    An anchor is an existing notebook file or its directory. An explicit local
+    choice never falls back: TCPA_DATA_DIR, data adjacent to the anchor, and a
+    source-project checkout must each hold valid local data or fail. The hosted
+    release is used only where no local data is claimed, and unrelated cwd or
+    parent data directories are never searched. Artifact validation checks
+    file/store presence, not scientific correctness; remote objects are checked
+    when read, so resolving performs no network access.
     """
     if 'TCPA_DATA_DIR' in os.environ:
         override = os.environ['TCPA_DATA_DIR']
@@ -43,14 +107,11 @@ def resolve_data_dir(*, anchor: str | Path | None = None,
         if not location.exists():
             raise FileNotFoundError(f'Caller anchor does not exist: {location}')
         directory = location if location.is_dir() else location.parent
-        return _validate(directory / 'data', required, 'Caller anchor')
-    cwd = Path.cwd().resolve()
-    for directory in (cwd, *cwd.parents):
-        config = directory / 'pyproject.toml'
-        if config.is_file():
-            with config.open('rb') as stream:
-                project = tomllib.load(stream).get('project', {})
-            if project.get('name') != 'dev-tcpa':
-                raise FileNotFoundError(f'Working directory belongs to another project: {config}')
-            return _validate(directory / 'data', required, 'Working-directory project')
-    raise FileNotFoundError('No TCPA project found; supply a caller anchor or TCPA_DATA_DIR')
+        project = _project(directory)
+        if (directory / 'data').exists() or (project and project[1] == SOURCE_PROJECT):
+            return _validate(directory / 'data', required, 'Caller anchor')
+        return RemotePath(REMOTE)
+    project = _project(Path.cwd().resolve())
+    if project and project[1] == SOURCE_PROJECT:
+        return _validate(project[0] / 'data', required, 'Working-directory project')
+    return RemotePath(REMOTE)

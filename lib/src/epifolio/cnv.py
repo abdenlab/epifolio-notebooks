@@ -52,6 +52,19 @@ DETAIL_SCHEMA_VERSION = "1"
 # Panel 2 switches from the binned overview to raw per-cCRE z-scores once the
 # window covers at most this many cCREs (chr1, the largest, is ~204k).
 DETAIL_MAX_ROWS = 250_000
+# Columns shown in every per-tab cCRE table. rDHS is the join key between
+# the locus table and the membership artifact and is never displayed.
+TABLE_COLUMNS = [
+    "cCRE",
+    "chrom",
+    "start",
+    "end",
+    "class",
+    "copy_number",
+    "copy_number_code",
+    "x_bin",
+    "cancer_z",
+]
 
 
 def cols_for(tags: Mapping[str, str], *panels: str) -> list[str]:
@@ -734,11 +747,14 @@ def panel_2(
     *,
     hide_sentinel: bool = False,
     detail: pl.DataFrame | None = None,
+    zrange: tuple[float, float] | None = None,
 ) -> go.Figure:
     """ATAC signal track across genome position.
 
     ``detail`` (load_cancer_z rows inside the window) replaces the binned
     overview with raw per-cCRE values when the window is narrow enough.
+    ``zrange`` is the z-score band of the last box selection, drawn as a
+    highlight.
     """
     if detail is None:
         x = np.asarray(row["p2_x"], dtype=float)
@@ -775,8 +791,24 @@ def panel_2(
         "ATAC z-score (500 kb median)",
         window,
     )
+    if zrange is not None:
+        layout["shapes"].append(
+            dict(
+                type="rect",
+                xref="paper",
+                yref="y",
+                x0=0,
+                x1=1,
+                y0=zrange[0],
+                y1=zrange[1],
+                fillcolor="rgba(76,120,168,0.13)",
+                line=dict(width=0),
+                layer="below",
+            )
+        )
+    # A 2-D box: x narrows the genomic window, y picks a z-score band.
     layout["dragmode"] = "select"
-    layout["selectdirection"] = "h"
+    layout["selectdirection"] = "any"
     fig.update_layout(**layout)
     return fig
 
@@ -1100,6 +1132,7 @@ __all__ = [
     "REMOTE",
     "SCHEMA_VERSION",
     "SENTINEL",
+    "TABLE_COLUMNS",
     "TRACKS",
     "VIOLIN_EDGES",
     "Z_LIM",

@@ -204,7 +204,19 @@ def _(biosample, ccre_reference, ccre_reference_error, cn_order, cnv, loci, loci
 @app.cell
 def _(cnv, mo):
     get_window, set_window = mo.state(cnv.FULL_GENOME, allow_self_loops=True)
-    return get_window, set_window
+    # A panel-2 box also carries a z-score band for the ATAC tab's table.
+    get_zrange, set_zrange = mo.state(None, allow_self_loops=True)
+    return get_window, get_zrange, set_window, set_zrange
+
+
+@app.cell
+def _(cnv, mo, set_window, set_zrange):
+    def _clear(_value):
+        set_window(cnv.FULL_GENOME)
+        set_zrange(None)
+
+    clear_selection = mo.ui.button(label="Clear selection", on_click=_clear)
+    return (clear_selection,)
 
 
 @app.cell
@@ -219,7 +231,13 @@ def _(cnv):
         hi = min(float(cnv.GENOME_LEN), float(max(xr)))
         return (lo, hi) if hi > lo else None
 
-    return (clamp_window,)
+    def clamp_zrange(plotly_ranges):
+        yr = (plotly_ranges or {}).get("y")
+        if not yr:
+            return None
+        return (float(min(yr)), float(max(yr)))
+
+    return clamp_window, clamp_zrange
 
 
 @app.cell
@@ -242,7 +260,7 @@ def _(np):
 
 
 @app.cell
-def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window):
+def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window, set_zrange):
     p1_row = read_row(biosample, "1")
 
     # H4: read .ranges off the UI element, not the callback arg (value.ranges would be
@@ -251,6 +269,8 @@ def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window):
         moved = clamp_window(panel1.ranges)
         if moved:
             set_window(moved)
+            # A new genomic brush drops the previous panel-2 z-score band.
+            set_zrange(None)
 
     panel1 = mo.ui.plotly(
         cnv.panel_1(p1_row, get_window(), biosample),
@@ -264,14 +284,17 @@ def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window):
 def _(
     biosample,
     clamp_window,
+    clamp_zrange,
     cnv,
     get_window,
+    get_zrange,
     hide_sentinel,
     mo,
     pl,
     read_cancer_z,
     read_row,
     set_window,
+    set_zrange,
 ):
     p2_row = read_row(biosample, "2")
     _window = get_window()
@@ -288,6 +311,7 @@ def _(
         moved = clamp_window(panel2.ranges)
         if moved:
             set_window(moved)
+            set_zrange(clamp_zrange(panel2.ranges))
 
     panel2 = mo.ui.plotly(
         cnv.panel_2(
@@ -296,6 +320,7 @@ def _(
             biosample,
             hide_sentinel=hide_sentinel.value,
             detail=p2_detail,
+            zrange=get_zrange(),
         ),
         on_change=sync2,
         config={"responsive": True},
@@ -429,26 +454,26 @@ def _(active_cn, cn_order, cnv, jscatter, p6_row):
 
 
 @app.cell
-def _(cnv, get_window, loci, membership):
-    # A top-panel brush is a genomic-window selection. Resolve it through the
-    # split membership artifact into cCRE identities and copy-number labels.
-    # This artifact has no per-cCRE Panel 5/6 z-score bin, so it does not
-    # manufacture scatter-panel highlights from genomic selection.
-    window = get_window()
-    top_selection_active = window != cnv.FULL_GENOME
+def _(biosample, loci, membership, read_cancer_z):
+    # Every tab's cCRE table filters this one frame. The split membership
+    # artifact resolves cCRE identities and copy number (joined on rDHS);
+    # the detail tier adds the cancer z-score (joined on reference_index).
+    ccre_frame = None
     if membership is not None and loci.height:
-        window_loci = loci.filter(
-            (loci["pos"] >= window[0]) & (loci["pos"] <= window[1])
-        )
-        top_ccres = window_loci.join(
+        ccre_frame = loci.join(
             membership,
             left_on="rDHS",
             right_on="cCRE_name",
             how="inner",
         )
-    else:
-        top_ccres = loci.head(0)
-    return top_ccres, top_selection_active
+        _cancer_z = read_cancer_z(biosample)
+        if _cancer_z is not None:
+            ccre_frame = ccre_frame.join(
+                _cancer_z.select("reference_index", "cancer_z"),
+                on="reference_index",
+                how="left",
+            )
+    return (ccre_frame,)
 
 
 @app.cell
@@ -600,84 +625,99 @@ def _(cn6_pos, panel6_widget, selection_active, selection_sync):
 
 
 @app.cell
-def _(
-    active_cn,
-    cnv,
-    membership,
-    pl,
-    top_ccres,
-    top_selection_active,
-):
-    selected_ccres = None
-    selected_ccre_preview = None
-    selected_ccre_count = 0
-    selected_ccre_status = "Make a genomic brush or Panel 5/6 lasso to list cCREs"
-
-    if membership is None:
-        selected_ccre_status = "split cCRE reference/membership artifacts unavailable"
-    elif not top_selection_active:
-        selected_ccre_status = (
-            "Make a Panel 1/2 genomic brush; Panel 5/6 raster selections do not "
-            "carry per-cCRE scatter membership"
+def _(cnv, membership_error, mo):
+    def ccre_view(frame, message):
+        # One rendering for every tab's table: a status line, then up to
+        # 2,000 rows of cnv.TABLE_COLUMNS (rDHS is never shown).
+        if frame is None:
+            return mo.md(message)
+        columns = [name for name in cnv.TABLE_COLUMNS if name in frame.columns]
+        return mo.vstack(
+            [
+                mo.md(f"{message}: **{frame.height:,} cCREs** (showing up to 2,000 rows)"),
+                mo.ui.table(frame.select(columns).head(2_000).to_pandas(), selection=None),
+            ],
+            gap=1,
         )
+
+    ccre_unavailable = (
+        f"**cCRE table unavailable:** {membership_error}. "
+        "Add `ccre_reference.parquet` and `summary_ccre_membership.parquet`."
+    )
+    return ccre_unavailable, ccre_view
+
+
+@app.cell
+def _(ccre_frame, ccre_unavailable, ccre_view, cnv, get_window, pl):
+    _window = get_window()
+    if ccre_frame is None:
+        table1 = ccre_view(None, ccre_unavailable)
+    elif _window == cnv.FULL_GENOME:
+        table1 = ccre_view(None, "Brush panel 1 to list the cCREs in a genomic window.")
     else:
-        selected_ccres = top_ccres
-        selected_ccres = selected_ccres.filter(
-            pl.col("copy_number").is_in([cnv.cn_label(level) for level in active_cn])
+        table1 = ccre_view(
+            ccre_frame.filter(pl.col("pos").is_between(*_window)),
+            "cCREs in the brushed window",
         )
-
-        selected_ccre_count = selected_ccres.height
-        selected_ccre_preview = (
-            selected_ccres.select(
-                [
-                    "cCRE",
-                    "rDHS",
-                    "chrom",
-                    "start",
-                    "end",
-                    "class",
-                    "copy_number",
-                    "copy_number_code",
-                    "x_bin",
-                ]
-            )
-            .head(2_000)
-            .to_pandas()
-        )
-        selected_ccre_status = (
-            f"{selected_ccre_count:,} selected cCREs; showing up to 2,000 rows"
-        )
-
-    return selected_ccre_count, selected_ccre_preview, selected_ccre_status
+    return (table1,)
 
 
 @app.cell
 def _(
-    mo,
-    selected_ccre_count,
-    selected_ccre_preview,
-    selected_ccre_status,
+    ccre_frame,
+    ccre_unavailable,
+    ccre_view,
+    cnv,
+    get_window,
+    get_zrange,
+    hide_sentinel,
+    pl,
 ):
-    ccre_table = (
-        mo.ui.table(selected_ccre_preview, selection=None)
-        if selected_ccre_preview is not None
-        else mo.md(
-            f"**Selected cCRE table unavailable:** {selected_ccre_status}. "
-            "Add `ccre_reference.parquet` and `summary_ccre_membership.parquet`."
+    _window, _zrange = get_window(), get_zrange()
+    if ccre_frame is None:
+        table2 = ccre_view(None, ccre_unavailable)
+    elif _window == cnv.FULL_GENOME and _zrange is None:
+        table2 = ccre_view(
+            None, "Box-select on panel 2 to list cCREs by genomic window and z-score."
         )
-    )
+    elif _zrange is not None and "cancer_z" not in ccre_frame.columns:
+        table2 = ccre_view(None, "z-score selection needs the panel 2 detail tier.")
+    else:
+        _rows = ccre_frame.filter(pl.col("pos").is_between(*_window))
+        if _zrange is not None:
+            _rows = _rows.filter(pl.col("cancer_z").is_between(*_zrange))
+        if hide_sentinel.value and "cancer_z" in _rows.columns:
+            _rows = _rows.filter(pl.col("cancer_z") != cnv.SENTINEL)
+        table2 = ccre_view(_rows, "cCREs in the panel 2 selection")
+    return (table2,)
 
-    # The selected cCRE table is driven by the genomic window and split
-    # membership artifacts. Keep the stale aggregate Panel 5/6 readout out of
-    # this section; Panel 5/6 retain their own visual lasso linking above.
-    readout56 = mo.vstack(
-        [
-            mo.md(f"{selected_ccre_status} (total: {selected_ccre_count:,})"),
-            ccre_table,
-        ],
-        gap=1,
+
+@app.cell
+def _(ccre_frame, ccre_unavailable, ccre_view, cnv, picked_cn, pl):
+    if ccre_frame is None:
+        table3 = ccre_view(None, ccre_unavailable)
+    elif not picked_cn:
+        table3 = ccre_view(None, "Click bars in panel 3 to list the cCREs at those copy numbers.")
+    else:
+        table3 = ccre_view(
+            ccre_frame.filter(
+                pl.col("copy_number").is_in([cnv.cn_label(level) for level in picked_cn])
+            ),
+            f"cCREs at copy number {', '.join(cnv.cn_label(level) for level in picked_cn)}",
+        )
+    return (table3,)
+
+
+@app.cell
+def _(ccre_view):
+    # Panel 5/6 bins are (cancer z, healthy z); the detail tier carries only
+    # the cancer z per cCRE, so a lasso cannot be resolved to cCREs yet.
+    table4 = ccre_view(
+        None,
+        "Panel 5/6 lasso selections resolve to grid cells, not cCREs: the "
+        "published detail tier has no per-cCRE healthy z-score yet.",
     )
-    return (readout56,)
+    return (table4,)
 
 
 @app.cell
@@ -692,6 +732,7 @@ def _(
     aliquot_dd,
     biosample,
     cancer_dd,
+    clear_selection,
     detail_error,
     get_tab,
     hide_sentinel,
@@ -703,41 +744,60 @@ def _(
     panel5_widget,
     panel6_widget,
     patient_dd,
-    readout56,
     set_tab,
+    table1,
+    table2,
+    table3,
+    table4,
 ):
     sections = mo.ui.tabs(
         {
-            "Copy number": panel1,
+            "Copy number": mo.vstack([panel1, table1], gap=1.5),
             "ATAC z-score": mo.vstack(
                 [
-                    mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")
-                    if detail_error
-                    else hide_sentinel,
+                    mo.hstack(
+                        [
+                            mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")
+                            if detail_error
+                            else hide_sentinel,
+                            clear_selection,
+                        ],
+                        justify="start",
+                        gap=1.5,
+                    ),
                     panel2,
-                ]
-            ),
-            "CN counts & distributions": mo.hstack(
-                [panel3, panel4], widths="equal", gap=1.5
-            ),
-            "Cancer vs healthy": mo.hstack(
-                [
-                    mo.vstack(
-                        [
-                            mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
-                            panel5_widget,
-                        ]
-                    ),
-                    mo.vstack(
-                        [
-                            mo.md(
-                                f"### 6 · Copy-number-stratified z-score scatter — {biosample}"
-                            ),
-                            panel6_widget,
-                        ]
-                    ),
+                    table2,
                 ],
-                widths="equal",
+                gap=1.5,
+            ),
+            "CN counts & distributions": mo.vstack(
+                [mo.hstack([panel3, panel4], widths="equal", gap=1.5), table3],
+                gap=1.5,
+            ),
+            "Cancer vs healthy": mo.vstack(
+                [
+                    mo.hstack(
+                        [
+                            mo.vstack(
+                                [
+                                    mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
+                                    panel5_widget,
+                                ]
+                            ),
+                            mo.vstack(
+                                [
+                                    mo.md(
+                                        f"### 6 · Copy-number-stratified z-score scatter — {biosample}"
+                                    ),
+                                    panel6_widget,
+                                ]
+                            ),
+                        ],
+                        widths="equal",
+                        gap=1.5,
+                    ),
+                    table4,
+                ],
                 gap=1.5,
             ),
         },
@@ -749,7 +809,6 @@ def _(
         [
             mo.hstack([cancer_dd, patient_dd, aliquot_dd], justify="start", gap=1.5),
             sections,
-            readout56,
         ],
         gap=2,
     )

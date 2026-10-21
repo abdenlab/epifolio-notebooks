@@ -681,11 +681,19 @@ def _(
 
 
 @app.cell
+def _(mo):
+    # Remembers the open tab: the tabs cell re-runs (and would reset) whenever a panel changes.
+    get_tab, set_tab = mo.state("Copy number")
+    return get_tab, set_tab
+
+
+@app.cell
 def _(
     aliquot_dd,
     biosample,
     cancer_dd,
     detail_error,
+    get_tab,
     hide_sentinel,
     mo,
     panel1,
@@ -696,15 +704,23 @@ def _(
     panel6_widget,
     patient_dd,
     readout56,
+    set_tab,
 ):
-    mo.vstack(
-        [
-            mo.hstack([cancer_dd, patient_dd, aliquot_dd], justify="start", gap=1.5),
-            panel1,
-            mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*") if detail_error else hide_sentinel,
-            panel2,
-            mo.hstack([panel3, panel4], widths="equal", gap=1.5),
-            mo.hstack(
+    sections = mo.ui.tabs(
+        {
+            "Copy number": panel1,
+            "ATAC z-score": mo.vstack(
+                [
+                    mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")
+                    if detail_error
+                    else hide_sentinel,
+                    panel2,
+                ]
+            ),
+            "CN counts & distributions": mo.hstack(
+                [panel3, panel4], widths="equal", gap=1.5
+            ),
+            "Cancer vs healthy": mo.hstack(
                 [
                     mo.vstack(
                         [
@@ -724,11 +740,20 @@ def _(
                 widths="equal",
                 gap=1.5,
             ),
+        },
+        value=get_tab(),
+        on_change=set_tab,
+        lazy=True,
+    )
+    mo.vstack(
+        [
+            mo.hstack([cancer_dd, patient_dd, aliquot_dd], justify="start", gap=1.5),
+            sections,
             readout56,
         ],
         gap=2,
     )
-    return
+    return (sections,)
 
 
 if __name__ == "__main__":

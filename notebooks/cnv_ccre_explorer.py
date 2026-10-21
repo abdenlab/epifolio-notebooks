@@ -52,6 +52,24 @@ def _(DATA, cnv):
 
 @app.cell
 def _(DATA, cnv, mo):
+    try:
+        detail_index = cnv.load_detail_index(DATA.schema_for("2"))
+        detail_error = None
+    except Exception as exc:  # panel 2 stays on the binned overview without the detail tier
+        detail_index = None
+        detail_error = str(exc)
+
+    @mo.cache
+    def read_cancer_z(biosample: str):
+        if detail_index is None:
+            return None
+        return cnv.load_cancer_z(detail_index, biosample)
+
+    return detail_error, detail_index, read_cancer_z
+
+
+@app.cell
+def _(DATA, cnv, mo):
     COHORT = mo.cache(cnv.load_cohort)(DATA)
     CANCERS = sorted(COHORT)
     return CANCERS, COHORT
@@ -149,6 +167,12 @@ def _(aliquot_dd):
 
 
 @app.cell
+def _(mo):
+    hide_sentinel = mo.ui.switch(value=False, label="Hide −10 (no ATAC signal)")
+    return (hide_sentinel,)
+
+
+@app.cell
 def _(biosample, read_row):
     meta = read_row(biosample, "header", "shared")
     cn_order = [str(level) for level in meta["cn_order"]]
@@ -237,8 +261,28 @@ def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window):
 
 
 @app.cell
-def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window):
+def _(
+    biosample,
+    clamp_window,
+    cnv,
+    get_window,
+    hide_sentinel,
+    mo,
+    pl,
+    read_cancer_z,
+    read_row,
+    set_window,
+):
     p2_row = read_row(biosample, "2")
+    _window = get_window()
+    # Raw per-cCRE values replace the binned overview once the window holds
+    # at most DETAIL_MAX_ROWS cCREs.
+    p2_detail = None
+    _cancer_z = read_cancer_z(biosample)
+    if _cancer_z is not None:
+        _in_window = _cancer_z.filter(pl.col("pos").is_between(*_window))
+        if _in_window.height <= cnv.DETAIL_MAX_ROWS:
+            p2_detail = _in_window
 
     def sync2(_value):
         moved = clamp_window(panel2.ranges)
@@ -246,11 +290,17 @@ def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window):
             set_window(moved)
 
     panel2 = mo.ui.plotly(
-        cnv.panel_2(p2_row, get_window(), biosample),
+        cnv.panel_2(
+            p2_row,
+            _window,
+            biosample,
+            hide_sentinel=hide_sentinel.value,
+            detail=p2_detail,
+        ),
         on_change=sync2,
         config={"responsive": True},
     )
-    return panel2, p2_row, sync2
+    return p2_detail, panel2, p2_row, sync2
 
 
 @app.cell
@@ -635,6 +685,8 @@ def _(
     aliquot_dd,
     biosample,
     cancer_dd,
+    detail_error,
+    hide_sentinel,
     mo,
     panel1,
     panel2,
@@ -649,6 +701,7 @@ def _(
         [
             mo.hstack([cancer_dd, patient_dd, aliquot_dd], justify="start", gap=1.5),
             panel1,
+            mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*") if detail_error else hide_sentinel,
             panel2,
             mo.hstack([panel3, panel4], widths="equal", gap=1.5),
             mo.hstack(

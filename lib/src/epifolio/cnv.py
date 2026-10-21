@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+import urllib.request
 from dataclasses import dataclass
 from importlib.metadata import files
 from itertools import accumulate
@@ -28,10 +30,12 @@ from epifolio.colors import load_color_map
 # ---------------------------------------------------------------------------
 # Payload schema and metadata contract
 # ---------------------------------------------------------------------------
-SCHEMA_VERSION = "3"
-N_VIOLIN_BINS = 256
-N_GRID = 192
-Z_LIM = (-10.5, 5.5)
+SCHEMA_VERSION = "4"
+N_VIOLIN_BINS = 400
+N_GRID = 300
+Z_LIM = (-14.0, 11.0)
+# Missing-ATAC marker kept in every v4 histogram (file metadata sentinel_value).
+SENTINEL = -10.0
 
 VIOLIN_EDGES = np.linspace(Z_LIM[0], Z_LIM[1], N_VIOLIN_BINS + 1).tolist()
 GRID_EDGES = np.linspace(Z_LIM[0], Z_LIM[1], N_GRID + 1).tolist()
@@ -42,6 +46,12 @@ DISTRIBUTIONS = "summary_signal_distributions.parquet"
 CCRE_REFERENCE = "ccre_reference.parquet"
 MEMBERSHIP = "summary_ccre_membership.parquet"
 MEMBERSHIP_SCHEMA_VERSION = "1"
+DETAIL = "atac_zscore_detail.parquet"
+DETAIL_MANIFEST = "detail_manifest.json"
+DETAIL_SCHEMA_VERSION = "1"
+# Panel 2 switches from the binned overview to raw per-cCRE z-scores once the
+# window covers at most this many cCREs (chr1, the largest, is ~204k).
+DETAIL_MAX_ROWS = 250_000
 
 
 def cols_for(tags: Mapping[str, str], *panels: str) -> list[str]:
@@ -79,8 +89,13 @@ def assert_edges_match(metadata: Mapping[str, str | bytes]) -> None:
     }
     for key, expected in checks.items():
         got = constants[key]
-        if not np.allclose(got, expected):
+        if np.shape(got) != np.shape(expected) or not np.allclose(got, expected):
             raise ValueError(f"CNV payload {key} does not match the notebook contract")
+    sentinel = metadata.get("sentinel_value")
+    if isinstance(sentinel, bytes):
+        sentinel = sentinel.decode()
+    if sentinel is None or float(sentinel) != SENTINEL:
+        raise ValueError(f"CNV payload sentinel_value={sentinel!r}; expected {SENTINEL!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -159,8 +174,10 @@ def cn_colors(levels: Iterable[object]) -> dict[str, str]:
 # Payload discovery and panel reads
 # ---------------------------------------------------------------------------
 DATA_DIR = ASSETS / "data" / "cnv_ccre"
-# Canonical mirror.
-REMOTE = "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
+# Canonical mirror; EPIFOLIO_CNV_REMOTE points a session at a staging mirror.
+REMOTE = os.environ.get(
+    "EPIFOLIO_CNV_REMOTE", "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
+)
 
 # cCRE locus table (chrom/start/end/rDHS/cCRE/class), shared across every
 # *.ccre.pq embedding file and row-count-identical to the CNV payload's
@@ -451,6 +468,79 @@ def load_panel(dataset: Dataset, biosample: str, *panels: str) -> dict[str, obje
 
 
 # ---------------------------------------------------------------------------
+# Detail tier: raw per-cCRE cancer z-scores
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class DetailIndex:
+    """The detail manifest reduced to the biosample -> column map.
+
+    The detail parquet is wide: one float32 column per biosample, named
+    ``sNNNN``, with rows in genome order and ``reference_index`` pointing at
+    the ccre_reference.parquet row each value belongs to.
+    """
+
+    src: str
+    columns: dict[str, str]
+
+
+def _read_text(src: str) -> str:
+    local = Path(src)
+    if local.exists():
+        return local.read_text()
+    with urllib.request.urlopen(src) as response:
+        return response.read().decode()
+
+
+def load_detail_index(
+    overview_metadata: Mapping[str, str | bytes],
+    src: str | None = None,
+    manifest_src: str | None = None,
+) -> DetailIndex:
+    """Load the detail manifest and check it was built from this overview payload."""
+    src = src or source(DETAIL)
+    manifest = json.loads(_read_text(manifest_src or source(DETAIL_MANIFEST)))
+    contract = manifest["contract"]
+    if contract["detail_schema_version"] != DETAIL_SCHEMA_VERSION:
+        raise ValueError(
+            f"detail_schema_version={contract['detail_schema_version']!r}; "
+            f"expected {DETAIL_SCHEMA_VERSION!r}"
+        )
+    if contract["chromosomes"] != CHROMS:
+        raise ValueError("detail chromosome order does not match the notebook contract")
+    overview_build = overview_metadata.get("build_id")
+    if isinstance(overview_build, bytes):
+        overview_build = overview_build.decode()
+    if contract["overview_build_id"] != overview_build:
+        raise ValueError("detail tier was built against a different overview payload")
+    if read_metadata(src).get("detail_build_id") != manifest["build_id"]:
+        raise ValueError("detail parquet does not match its manifest")
+
+    columns = {sample["biosample"]: sample["column"] for sample in contract["samples"]}
+    return DetailIndex(src=src, columns=columns)
+
+
+def load_cancer_z(index: DetailIndex, biosample: str) -> pl.DataFrame:
+    """Whole-genome cancer z-scores for one biosample, in genome order.
+
+    Returns ``reference_index``, genome-linear ``pos`` (point anchor is the
+    cCRE start, as in load_loci) and ``cancer_z``. One column read (~4 s
+    remote); windows are filtered from this frame rather than re-read.
+    """
+    return (
+        pl.scan_parquet(index.src)
+        .select(
+            "reference_index",
+            (
+                pl.col("chrom").replace_strict(CHROM_OFFSET, return_dtype=pl.Int64)
+                + pl.col("start")
+            ).alias("pos"),
+            pl.col(index.columns[biosample]).alias("cancer_z"),
+        )
+        .collect()
+    )
+
+
+# ---------------------------------------------------------------------------
 # Chromosome tick positions and dashed divider shapes (src/panels.py:11-17)
 # ---------------------------------------------------------------------------
 CHROM_TICKVALS = [CHROM_OFFSET[c] + CHROM_SIZES[c] // 2 for c in CHROMS]
@@ -624,16 +714,51 @@ def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str)
 # ---------------------------------------------------------------------------
 # Panel 2 — ATAC z-score track (src/panels.py:82-111)
 # ---------------------------------------------------------------------------
-def panel_2(row: dict[str, object], window: tuple[float, float], biosample: str) -> go.Figure:
-    """ATAC signal track across genome position."""
-    x = np.asarray(row["p2_x"], dtype=float)
-    y = np.asarray(row["p2_y"], dtype=float)
-    p2_n = np.asarray(row["p2_n"], dtype=float)
+def sentinel_mask(y: np.ndarray, binned: bool) -> np.ndarray:
+    """True where a panel-2 value is the -10 sentinel.
+
+    Binned overview values are grid-bin centres, so the whole bin holding
+    SENTINEL is masked; that bin also holds the few genuine values in
+    [-10, -10 + bin width), at most 6 per biosample in the v4 build.
+    """
+    if not binned:
+        return y == SENTINEL
+    bin_of = np.searchsorted(GRID_EDGES, y, side="right") - 1
+    return bin_of == np.searchsorted(GRID_EDGES, SENTINEL, side="right") - 1
+
+
+def panel_2(
+    row: dict[str, object],
+    window: tuple[float, float],
+    biosample: str,
+    *,
+    hide_sentinel: bool = False,
+    detail: pl.DataFrame | None = None,
+) -> go.Figure:
+    """ATAC signal track across genome position.
+
+    ``detail`` (load_cancer_z rows inside the window) replaces the binned
+    overview with raw per-cCRE values when the window is narrow enough.
+    """
+    if detail is None:
+        x = np.asarray(row["p2_x"], dtype=float)
+        y = np.asarray(row["p2_y"], dtype=float)
+        customdata = np.asarray(row["p2_n"], dtype=float)
+        hover = "position %{x}<br>z-score %{y:.2f}<br>cCREs %{customdata}<extra></extra>"
+        tier = ""
+    else:
+        x = detail["pos"].to_numpy().astype(float)
+        y = detail["cancer_z"].to_numpy().astype(float)
+        customdata = None
+        hover = "position %{x}<br>z-score %{y:.3f}<extra></extra>"
+        tier = f" · per-cCRE detail ({len(y):,})"
 
     # Same chromosome cycle as panel 1
     chrom_idx = _chrom_index(x)
 
     win_mask = (x >= window[0]) & (x <= window[1])
+    if hide_sentinel:
+        win_mask &= ~sentinel_mask(y, binned=detail is None)
 
     fig = go.Figure(
         go.Scattergl(
@@ -641,12 +766,12 @@ def panel_2(row: dict[str, object], window: tuple[float, float], biosample: str)
             y=y[win_mask],
             mode="markers",
             marker=_chrom_marker(chrom_idx, win_mask, size=3, opacity=0.8),
-            customdata=p2_n[win_mask],
-            hovertemplate="position %{x}<br>z-score %{y:.2f}<br>cCREs %{customdata}<extra></extra>",
+            customdata=None if customdata is None else customdata[win_mask],
+            hovertemplate=hover,
         )
     )
     layout = genome_layout(
-        f"2 · ATAC signal at each cCRE across genomic coordinates — {biosample}",
+        f"2 · ATAC signal at each cCRE across genomic coordinates — {biosample}{tier}",
         "ATAC z-score (500 kb median)",
         window,
     )
@@ -954,9 +1079,14 @@ __all__ = [
     "CHROM_OFFSET",
     "CHROM_SIZES",
     "DATA_DIR",
+    "DETAIL",
+    "DETAIL_MANIFEST",
+    "DETAIL_MAX_ROWS",
+    "DETAIL_SCHEMA_VERSION",
     "DISTRIBUTIONS",
     "Dataset",
     "DensityTable",
+    "DetailIndex",
     "FULL_GENOME",
     "GENOME_LEN",
     "GRID_EDGES",
@@ -969,6 +1099,7 @@ __all__ = [
     "N_VIOLIN_BINS",
     "REMOTE",
     "SCHEMA_VERSION",
+    "SENTINEL",
     "TRACKS",
     "VIOLIN_EDGES",
     "Z_LIM",
@@ -986,6 +1117,8 @@ __all__ = [
     "genome_layout",
     "load_cohort",
     "load_ccre_reference",
+    "load_cancer_z",
+    "load_detail_index",
     "load_membership",
     "load_loci",
     "load_panel",
@@ -999,5 +1132,6 @@ __all__ = [
     "panel_tags",
     "read_metadata",
     "rgba",
+    "sentinel_mask",
     "source",
 ]

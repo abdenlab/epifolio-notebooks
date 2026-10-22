@@ -25,6 +25,8 @@ app = marimo.App(width="full")
 
 @app.cell
 def _():
+    import functools
+
     import jscatter
     import marimo as mo
     import numpy as np
@@ -33,7 +35,7 @@ def _():
 
     import epifolio.cnv as cnv
 
-    return cnv, jscatter, mo, np, pc, pl
+    return cnv, functools, jscatter, mo, np, pc, pl
 
 
 @app.cell
@@ -312,11 +314,14 @@ def _(
     clamp_window,
     clamp_zrange,
     cnv,
+    detail_index,
     get_window,
     get_zrange,
     hide_sentinel,
+    loci,
     mo,
     pl,
+    read_ccre_frame,
     read_zscores,
     read_row,
     set_window,
@@ -325,11 +330,15 @@ def _(
     p2_row = read_row(biosample, "2")
     _window = get_window()
     # Raw per-cCRE values replace the binned overview once the window holds
-    # at most DETAIL_MAX_ROWS cCREs.
+    # at most DETAIL_MAX_ROWS cCREs. The locus table counts the window, so a
+    # wide window never waits on the detail read.
     p2_detail = None
-    _zscores = read_zscores(biosample)
-    if _zscores is not None:
-        _in_window = _zscores.filter(pl.col("pos").is_between(*_window))
+    _n_window = loci.filter(pl.col("pos").is_between(*_window)).height if loci.height else 0
+    if detail_index is not None and _n_window <= cnv.DETAIL_MAX_ROWS:
+        _frame = read_ccre_frame()
+        if _frame is None or "cancer_z" not in _frame.columns:
+            _frame = read_zscores(biosample)
+        _in_window = _frame.filter(pl.col("pos").is_between(*_window))
         if _in_window.height <= cnv.DETAIL_MAX_ROWS:
             p2_detail = _in_window
 
@@ -487,27 +496,40 @@ def _(active_cn, cn_order, cnv, jscatter, p6_row):
 
 
 @app.cell
-def _(biosample, loci, membership, read_zscores):
-    # Every tab's cCRE table filters this one frame. The split membership
-    # artifact resolves cCRE identities and copy number (joined on rDHS);
-    # the detail tier adds the cancer and healthy z-scores and the panel 5/6
-    # grid cell (joined on reference_index).
-    ccre_frame = None
+def _(loci, membership):
+    # The split membership artifact resolves cCRE identities and copy number
+    # (joined on rDHS).
+    ccre_meta = None
     if membership is not None and loci.height:
-        ccre_frame = loci.join(
+        ccre_meta = loci.join(
             membership,
             left_on="rDHS",
             right_on="cCRE_name",
             how="inner",
         )
-        _zscores = read_zscores(biosample)
-        if _zscores is not None:
-            ccre_frame = ccre_frame.join(
-                _zscores.select("reference_index", "cancer_z", "healthy_z", "bin_id"),
-                on="reference_index",
-                how="left",
-            )
-    return (ccre_frame,)
+    return (ccre_meta,)
+
+
+@app.cell
+def _(biosample, ccre_meta, functools, read_zscores):
+    # ccre_meta plus the detail tier's cancer and healthy z-scores and panel
+    # 5/6 grid cell (joined on reference_index). Cells call this rather than
+    # depend on a frame, so only the ones that need per-cCRE values wait on
+    # the detail read.
+    @functools.cache
+    def read_ccre_frame():
+        if ccre_meta is None:
+            return None
+        zscores = read_zscores(biosample)
+        if zscores is None:
+            return ccre_meta
+        return ccre_meta.join(
+            zscores.select("reference_index", "cancer_z", "healthy_z", "bin_id"),
+            on="reference_index",
+            how="left",
+        )
+
+    return (read_ccre_frame,)
 
 
 @app.cell
@@ -835,15 +857,11 @@ def _(
     panel6_widget,
     patient_dd,
     set_tab,
-    table1,
-    table2,
-    table3,
     scatter_note,
-    table4,
 ):
     sections = mo.ui.tabs(
         {
-            "Copy number": mo.vstack([panel1, table1], gap=1.5),
+            "Copy number": panel1,
             "ATAC z-score": mo.vstack(
                 [
                     mo.hstack(
@@ -857,38 +875,26 @@ def _(
                         gap=1.5,
                     ),
                     panel2,
-                    table2,
                 ],
                 gap=1.5,
             ),
-            "CN counts & distributions": mo.vstack(
-                [mo.hstack([panel3, panel4], widths="equal", gap=1.5), table3],
-                gap=1.5,
-            ),
-            "Cancer vs healthy": mo.vstack(
+            "CN counts & distributions": mo.hstack([panel3, panel4], widths="equal", gap=1.5),
+            "Cancer vs healthy": mo.hstack(
                 [
-                    mo.hstack(
+                    mo.vstack(
                         [
-                            mo.vstack(
-                                [
-                                    mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
-                                    scatter_note if panel5_widget is None else panel5_widget,
-                                ]
-                            ),
-                            mo.vstack(
-                                [
-                                    mo.md(
-                                        f"### 6 · Copy-number-stratified z-score scatter — {biosample}"
-                                    ),
-                                    scatter_note if panel6_widget is None else panel6_widget,
-                                ]
-                            ),
-                        ],
-                        widths="equal",
-                        gap=1.5,
+                            mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
+                            scatter_note if panel5_widget is None else panel5_widget,
+                        ]
                     ),
-                    table4,
+                    mo.vstack(
+                        [
+                            mo.md(f"### 6 · Copy-number-stratified z-score scatter — {biosample}"),
+                            scatter_note if panel6_widget is None else panel6_widget,
+                        ]
+                    ),
                 ],
+                widths="equal",
                 gap=1.5,
             ),
         },
@@ -904,6 +910,28 @@ def _(
         gap=2,
     )
     return (sections,)
+
+
+@app.cell
+def _(read_ccre_frame):
+    # Registered after the tabs cell: marimo runs ready cells in file order,
+    # so the panels render before this waits on the detail read.
+    ccre_frame = read_ccre_frame()
+    return (ccre_frame,)
+
+
+@app.cell
+def _(get_tab, table1, table2, table3, table4):
+    # The open tab's table, under the tab strip. Kept out of the tabs cell so
+    # a selection redraws only this table, never the panels (a re-run there
+    # remounts the panel 5/6 WebGL canvases blank).
+    {
+        "Copy number": table1,
+        "ATAC z-score": table2,
+        "CN counts & distributions": table3,
+        "Cancer vs healthy": table4,
+    }[get_tab()]
+    return
 
 
 if __name__ == "__main__":

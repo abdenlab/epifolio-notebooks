@@ -26,6 +26,7 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import functools
+    import json
 
     import jscatter
     import marimo as mo
@@ -35,7 +36,7 @@ def _():
 
     import epifolio.cnv as cnv
 
-    return cnv, functools, jscatter, mo, np, pc, pl
+    return cnv, functools, jscatter, json, mo, np, pc, pl
 
 
 @app.cell
@@ -224,12 +225,16 @@ def _(cnv, mo):
     get_window, set_window = mo.state(cnv.FULL_GENOME, allow_self_loops=True)
     # A panel-2 box also carries a z-score band for the ATAC tab's table.
     get_zrange, set_zrange = mo.state(None, allow_self_loops=True)
+    # A panel-2 lasso keeps its outline; the table lists the cCREs inside it.
+    get_lasso, set_lasso = mo.state(None, allow_self_loops=True)
     # The panel whose selection was made last; its table shows on every tab.
     get_table_source, set_table_source = mo.state(None)
     return (
+        get_lasso,
         get_table_source,
         get_window,
         get_zrange,
+        set_lasso,
         set_table_source,
         set_window,
         set_zrange,
@@ -237,10 +242,11 @@ def _(cnv, mo):
 
 
 @app.cell
-def _(cnv, mo, set_table_source, set_window, set_zrange):
+def _(cnv, mo, set_lasso, set_table_source, set_window, set_zrange):
     def _clear(_value):
         set_window(cnv.FULL_GENOME)
         set_zrange(None)
+        set_lasso(None)
         set_table_source(None)
 
     clear_selection = mo.ui.button(label="Clear selection", on_click=_clear)
@@ -248,24 +254,38 @@ def _(cnv, mo, set_table_source, set_window, set_zrange):
 
 
 @app.cell
-def _(cnv):
-    def clamp_window(plotly_ranges):
-        # H5: read "x" key, not "xaxis.range[0]"
-        xr = (plotly_ranges or {}).get("x")
-        if not xr:
-            # H8: return None so the caller skips set_window (no snap-back)
+def _(cnv, json):
+    def clamp_window(region):
+        # H8: return None so the caller skips set_window (no snap-back)
+        if region is None:
             return None
-        lo = max(0.0, float(min(xr)))
-        hi = min(float(cnv.GENOME_LEN), float(max(xr)))
+        lo = max(0.0, region["x"][0])
+        hi = min(float(cnv.GENOME_LEN), region["x"][1])
         return (lo, hi) if hi > lo else None
 
-    def clamp_zrange(plotly_ranges):
-        yr = (plotly_ranges or {}).get("y")
-        if not yr:
-            return None
-        return (float(min(yr)), float(max(yr)))
+    # A plotly value also changes on a tool switch, zoom or pan, carrying the
+    # old selection along. Only a new selection may act: re-applying a stale
+    # one rebuilt the panel mid-zoom and reset its tool to box select.
+    _seen = {}
+    # Each panel's last chosen tool (select, lasso, zoom, pan), kept when the
+    # panel is rebuilt.
+    drag_modes = {}
 
-    return clamp_window, clamp_zrange
+    def new_selection(name, plot):
+        """(changed, cnv.selection_region) for a plot's current selection."""
+        # mo.ui.plotly exposes the box as .ranges but keeps a lasso's outline
+        # only in its raw selection payload.
+        data = getattr(plot, "_selection_data", None) or {}
+        drag_modes[name] = data.get("dragmode", drag_modes.get(name))
+        key = json.dumps(
+            [id(plot), data.get("range"), data.get("selections")], sort_keys=True, default=str
+        )
+        if _seen.get(name) == key:
+            return False, None
+        _seen[name] = key
+        return True, cnv.selection_region(data)
+
+    return clamp_window, drag_modes, new_selection
 
 
 @app.cell
@@ -321,33 +341,36 @@ def _(
     clamp_window,
     cn_order,
     cnv,
+    drag_modes,
     get_window,
     mo,
+    new_selection,
     read_row,
     sections,
+    set_lasso,
     set_table_source,
     set_window,
     set_zrange,
 ):
     p1_row = read_row(biosample, "1")
 
-    # H4: read .ranges off the UI element, not the callback arg (value.ranges would be
-    # a list[dict] of points, not a range dict)
+    # H4: read the selection off the UI element, not the callback arg (the
+    # value is a list[dict] of points). A box or a lasso both set the window.
     def sync1(_value):
-        moved = clamp_window(panel1.ranges)
+        changed, region = new_selection("panel 1", panel1)
+        moved = clamp_window(region) if changed else None
         if moved:
             set_window(moved)
-            # A new genomic brush drops the previous panel-2 z-score band.
+            # A new genomic brush drops the previous panel-2 z band and lasso.
             set_zrange(None)
+            set_lasso(None)
             set_table_source("panel 1")
 
     panel1 = None
     if sections.value == "Copy number":
-        panel1 = mo.ui.plotly(
-            cnv.panel_1(p1_row, get_window(), biosample, cn_order),
-            on_change=sync1,
-            config={"responsive": True},
-        )
+        _fig = cnv.panel_1(p1_row, get_window(), biosample, cn_order)
+        _fig.update_layout(dragmode=drag_modes.get("panel 1") or "select")
+        panel1 = mo.ui.plotly(_fig, on_change=sync1, config={"responsive": True})
     panel1
     return panel1, p1_row, sync1
 
@@ -356,21 +379,24 @@ def _(
 def _(
     biosample,
     clamp_window,
-    clamp_zrange,
     clear_selection,
     cnv,
     detail_error,
     detail_index,
+    drag_modes,
+    get_lasso,
     get_window,
     get_zrange,
     hide_sentinel,
     loci,
     mo,
+    new_selection,
     pl,
     read_ccre_frame,
     read_zscores,
     read_row,
     sections,
+    set_lasso,
     set_table_source,
     set_window,
     set_zrange,
@@ -392,26 +418,27 @@ def _(
             p2_detail = _in_window
 
     def sync2(_value):
-        moved = clamp_window(panel2.ranges)
+        changed, region = new_selection("panel 2", panel2)
+        moved = clamp_window(region) if changed else None
         if moved:
             set_window(moved)
-            set_zrange(clamp_zrange(panel2.ranges))
+            set_zrange(region["y"])
+            set_lasso(region["lasso"])
             set_table_source("panel 2")
 
     panel2 = None
     if _shown:
-        panel2 = mo.ui.plotly(
-            cnv.panel_2(
-                p2_row,
-                _window,
-                biosample,
-                hide_sentinel=hide_sentinel.value,
-                detail=p2_detail,
-                zrange=get_zrange(),
-            ),
-            on_change=sync2,
-            config={"responsive": True},
+        _fig = cnv.panel_2(
+            p2_row,
+            _window,
+            biosample,
+            hide_sentinel=hide_sentinel.value,
+            detail=p2_detail,
+            zrange=get_zrange(),
+            lasso=get_lasso(),
         )
+        _fig.update_layout(dragmode=drag_modes.get("panel 2") or "select")
+        panel2 = mo.ui.plotly(_fig, on_change=sync2, config={"responsive": True})
     (
         mo.vstack(
             [
@@ -436,18 +463,22 @@ def _(
 
 
 @app.cell
-def _(biosample, cn_order, cnv, hide_sentinel, mo, read_row, set_table_source):
+def _(biosample, cn_order, cnv, hide_sentinel, mo, new_selection, read_row, set_table_source):
     # H1: read the correct row for panel 3 (tag "3", not "1")
     p3_row = read_row(biosample, "3")
     # Hiding -10 needs only the published per-level sentinel counts.
     _sentinel_n = (
         read_row(biosample, "4")["violin_cancer_sentinel_n"] if hide_sentinel.value else None
     )
+    def pick3(_points):
+        # A bar pick by box or lasso; a tool switch or pan leaves the table alone.
+        if new_selection("panel 3", panel3)[0]:
+            set_table_source("panel 3" if panel3.points else None)
+
     panel3 = mo.ui.plotly(
-        cnv.panel_3(p3_row, cn_order, sentinel_n=_sentinel_n),
-        on_change=lambda points: set_table_source("panel 3" if points else None),
+        cnv.panel_3(p3_row, cn_order, sentinel_n=_sentinel_n), on_change=pick3
     )
-    return p3_row, panel3
+    return p3_row, panel3, pick3
 
 
 @app.cell
@@ -626,15 +657,24 @@ def _(biosample, ccre_meta, functools, read_zscores):
 
 
 @app.cell
-def _(ccre_frame, cnv, get_window, get_zrange, pl):
+def _(ccre_frame, cnv, get_lasso, get_window, get_zrange, pl):
     # The tab 1/2 genomic selection: the brushed window, narrowed by the
-    # panel-2 z-score band when there is one. None while nothing is brushed.
-    _window, _zrange = get_window(), get_zrange()
+    # panel-2 z-score band, and to the cCREs inside a panel-2 lasso. None
+    # while nothing is brushed.
+    _window, _zrange, _lasso = get_window(), get_zrange(), get_lasso()
     genomic_rows = None
     if ccre_frame is not None and (_window != cnv.FULL_GENOME or _zrange is not None):
         genomic_rows = ccre_frame.filter(pl.col("pos").is_between(*_window))
         if _zrange is not None and "cancer_z" in genomic_rows.columns:
             genomic_rows = genomic_rows.filter(pl.col("cancer_z").is_between(*_zrange))
+        if _lasso is not None and "cancer_z" in genomic_rows.columns:
+            genomic_rows = genomic_rows.filter(
+                cnv.in_polygon(
+                    genomic_rows["pos"].to_numpy(),
+                    genomic_rows["cancer_z"].fill_null(float("nan")).to_numpy(),
+                    *_lasso,
+                )
+            )
     return (genomic_rows,)
 
 

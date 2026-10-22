@@ -10,12 +10,13 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import urllib.request
 from dataclasses import dataclass
 from importlib.metadata import files
 from itertools import accumulate
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -879,6 +880,59 @@ def sentinel_mask(y: np.ndarray, binned: bool) -> np.ndarray:
     return bin_of == np.searchsorted(GRID_EDGES, SENTINEL, side="right") - 1
 
 
+_PATH_POINT = re.compile(r"[ML]\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)")
+
+
+def selection_region(selection: Mapping[str, object]) -> dict[str, object] | None:
+    """Extent and lasso outline of a plotly selection, or None for no selection.
+
+    A box arrives as ``range``; a lasso has no range, only its outline as the
+    last ``selections`` entry (an SVG path in data coordinates). Returns
+    ``x`` and ``y`` as (lo, hi) and ``lasso`` as (xs, ys), None for a box.
+    """
+    box = selection.get("range")
+    if isinstance(box, Mapping) and box.get("x"):
+        y = box.get("y")
+        return {
+            "x": (float(min(box["x"])), float(max(box["x"]))),
+            "y": (float(min(y)), float(max(y))) if y else None,
+            "lasso": None,
+        }
+    shapes = selection.get("selections") or []
+    if not shapes:
+        return None
+    shape = shapes[-1]
+    if shape.get("type") == "rect":
+        xs = [float(shape["x0"]), float(shape["x1"])]
+        ys = [float(shape["y0"]), float(shape["y1"])]
+        lasso = None
+    else:
+        pairs = _PATH_POINT.findall(str(shape.get("path", "")))
+        if len(pairs) < 3:
+            return None
+        xs = [float(x) for x, _ in pairs]
+        ys = [float(y) for _, y in pairs]
+        lasso = (xs, ys)
+    return {"x": (min(xs), max(xs)), "y": (min(ys), max(ys)), "lasso": lasso}
+
+
+def in_polygon(
+    x: np.ndarray, y: np.ndarray, polygon_x: Sequence[float], polygon_y: Sequence[float]
+) -> np.ndarray:
+    """True where (x, y) falls inside the polygon (even-odd ray casting)."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    inside = np.zeros(len(x), dtype=bool)
+    j = len(polygon_x) - 1
+    for i in range(len(polygon_x)):
+        xi, yi, xj, yj = polygon_x[i], polygon_y[i], polygon_x[j], polygon_y[j]
+        if yi != yj:
+            crosses = (yi > y) != (yj > y)
+            inside ^= crosses & (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+        j = i
+    return inside
+
+
 def drop_sentinel(frame: pl.DataFrame, columns: Iterable[str] = ("cancer_z",)) -> pl.DataFrame:
     """Rows where none of ``columns`` holds the -10 sentinel; nulls are kept.
 
@@ -898,6 +952,7 @@ def panel_2(
     hide_sentinel: bool = False,
     detail: pl.DataFrame | None = None,
     zrange: tuple[float, float] | None = None,
+    lasso: tuple[Sequence[float], Sequence[float]] | None = None,
 ) -> go.Figure:
     """ATAC signal track across genome position.
 
@@ -905,7 +960,8 @@ def panel_2(
     ``cancer_z``) replaces the binned overview with raw values when the
     window is narrow enough; with the locus columns ``cCRE``/``start``/``end``
     the hover names each cCRE and its interval. ``zrange`` is the z-score
-    band of the last box selection, drawn as a highlight.
+    band of the last box selection, drawn as a highlight; ``lasso`` the
+    outline of the last lasso, drawn in its place.
     """
     if detail is None:
         x = np.asarray(row["p2_x"], dtype=float)
@@ -965,7 +1021,19 @@ def panel_2(
         "ATAC z-score (500 kb median)",
         window,
     )
-    if zrange is not None:
+    if lasso is not None:
+        layout["shapes"].append(
+            dict(
+                type="path",
+                xref="x",
+                yref="y",
+                path="M" + "L".join(f"{px},{py}" for px, py in zip(*lasso)) + "Z",
+                fillcolor="rgba(76,120,168,0.13)",
+                line=dict(width=1, color="rgba(76,120,168,0.6)"),
+                layer="below",
+            )
+        )
+    elif zrange is not None:
         layout["shapes"].append(
             dict(
                 type="rect",
@@ -1477,6 +1545,7 @@ __all__ = [
     "load_loci",
     "load_panel",
     "grid_bin_id",
+    "in_polygon",
     "membership_source",
     "open_dataset",
     "panel_1",
@@ -1489,6 +1558,7 @@ __all__ = [
     "scatter_positions",
     "scatter_row",
     "selection_ccres",
+    "selection_region",
     "sentinel_mask",
     "source",
     "violin_outline",

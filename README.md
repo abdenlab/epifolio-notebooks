@@ -80,7 +80,14 @@ Some things can be fetched lazily by `epifolio.data_utils` on first access, cach
 
 In other cases, we may access large assets like Parquet files using appropriate tools like Polars that can handle streaming and random access as needed directly from URLs.
 
-The CNV/cCRE explorer reads its two-file Parquet payload (~108 MB) remotely rather than bundling it: `epifolio.cnv.source()` prefers a package-local copy under `lib/src/epifolio/assets/data/cnv_ccre/` if one is present, else the canonical mirror at `https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre/`. Polars range-reads the columns each panel needs, so no full download occurs.
+The CNV/cCRE explorer reads its Parquet data remotely rather than bundling it: `epifolio.cnv.source()` prefers a package-local copy under `lib/src/epifolio/assets/data/cnv_ccre/` if one is present, else a remote mirror. Polars range-reads the columns each panel needs, so no full download occurs.
+
+CNV/cCRE data mirrors:
+
+- **Prod** (default): `https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre/`
+- **Dev**: `https://users.abdenlab.org/voy/itcr/epifolio/notebooks/cnv_ccre/`, new data before prod gets it; not a public release location.
+
+Set `EPIFOLIO_CNV_REMOTE` to `prod`, `dev` or a mirror URL.
 
 ## Notebook surface
 

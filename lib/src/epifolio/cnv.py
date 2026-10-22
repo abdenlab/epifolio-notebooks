@@ -110,8 +110,8 @@ def assert_edges_match(metadata: Mapping[str, str | bytes]) -> None:
     constants = file_constants(metadata)
     if constants["schema_version"] != SCHEMA_VERSION:
         raise ValueError(
-            f"CNV payload schema_version={constants['schema_version']!r}; "
-            f"expected {SCHEMA_VERSION!r}"
+            f"CNV data is schema {constants['schema_version']}, this notebook needs "
+            f"schema {SCHEMA_VERSION}. Set EPIFOLIO_CNV_REMOTE=dev until prod is updated."
         )
     checks = {
         "violin_edges": VIOLIN_EDGES,
@@ -204,10 +204,12 @@ def cn_colors(levels: Iterable[object]) -> dict[str, str]:
 # Payload discovery and panel reads
 # ---------------------------------------------------------------------------
 DATA_DIR = ASSETS / "data" / "cnv_ccre"
-# Canonical mirror; EPIFOLIO_CNV_REMOTE points a session at a staging mirror.
-REMOTE = os.environ.get(
-    "EPIFOLIO_CNV_REMOTE", "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
-)
+# Prod mirror (default) and dev mirror (new data before prod gets it).
+# EPIFOLIO_CNV_REMOTE: "prod", "dev" or a mirror URL.
+PROD_REMOTE = "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
+DEV_REMOTE = "https://users.abdenlab.org/voy/itcr/epifolio/notebooks/cnv_ccre"
+_REMOTE_CHOICE = os.environ.get("EPIFOLIO_CNV_REMOTE", "prod")
+REMOTE = {"prod": PROD_REMOTE, "dev": DEV_REMOTE}.get(_REMOTE_CHOICE, _REMOTE_CHOICE)
 
 # cCRE locus table (chrom/start/end/rDHS/cCRE/class), shared across every
 # *.ccre.pq embedding file and row-count-identical to the CNV payload's
@@ -1494,6 +1496,7 @@ __all__ = [
     "DETAIL_MANIFEST",
     "DETAIL_MAX_ROWS",
     "DETAIL_SCHEMA_VERSION",
+    "DEV_REMOTE",
     "DISTRIBUTIONS",
     "Dataset",
     "DensityTable",
@@ -1510,6 +1513,7 @@ __all__ = [
     "N_GRID",
     "N_VIOLIN_BINS",
     "OVERVIEW_MERGE",
+    "PROD_REMOTE",
     "REMOTE",
     "SCHEMA_VERSION",
     "SENTINEL",

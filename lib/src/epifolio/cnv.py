@@ -49,6 +49,8 @@ MEMBERSHIP_SCHEMA_VERSION = "2"
 CCRE_REFERENCE_SCHEMA_VERSION = "1"
 # cn_order level for cCREs outside every ASCAT segment; panels 3-4 leave it out.
 UNMAPPED = "Unmapped"
+# Every ENCODE cCRE accession in the locus table: this prefix and 7 digits.
+CCRE_PREFIX = "EH38E"
 DETAIL = "atac_zscore_detail.parquet"
 DETAIL_MANIFEST = "detail_manifest.json"
 DETAIL_SCHEMA_VERSION = "2"
@@ -638,12 +640,14 @@ BASE_LAYOUT = dict(
 )
 
 _DARK24 = px.colors.qualitative.Dark24
+_CHROM_STARTS = np.asarray([CHROM_OFFSET[chrom] for chrom in CHROMS], dtype=float)
 
 # Chromosome colours as a discrete colorscale rather than a per-point hex string
 # array. Plotly's validator spends ~10 s on a 258k-element string array and ~0.1 s
-# on the equivalent float array, so panels 1 and 2 send integer chromosome indices
-# plus this scale. Paired stops keep each band flat instead of interpolating, and
-# cmin/cmax must be pinned on every trace so masked traces agree on the mapping.
+# on the equivalent float array, so panel 1 sends integer chromosome indices
+# plus this scale (panel 2 draws one single-colour trace per chromosome).
+# Paired stops keep each band flat instead of interpolating, and cmin/cmax must
+# be pinned on every trace so masked traces agree on the mapping.
 # This is the one deliberate departure from src/panels.py:46, :92.
 _N_CHROM = len(CHROMS)
 _CHROM_SCALE = [
@@ -665,6 +669,39 @@ def _chrom_marker(chrom_idx, mask, size: int, opacity: float) -> dict:
         showscale=False,
         opacity=opacity,
     )
+
+
+def _chrom_traces(
+    x: np.ndarray,
+    y: np.ndarray,
+    mask: np.ndarray,
+    customdata: np.ndarray,
+    hover: str,
+    *,
+    size: int,
+    opacity: float,
+) -> list[go.Scattergl]:
+    """One Scattergl per chromosome under ``mask``, coloured as in panel 1.
+
+    A trace per chromosome lets the hover name its chromosome without a
+    string per point: ``{chrom}`` in ``hover`` becomes the chromosome name.
+    """
+    chrom_idx = _chrom_index(x).astype(int)
+    traces = []
+    for i in np.unique(chrom_idx[mask]):
+        keep = mask & (chrom_idx == i)
+        traces.append(
+            go.Scattergl(
+                x=x[keep],
+                y=y[keep],
+                mode="markers",
+                marker=dict(size=size, color=_DARK24[i % len(_DARK24)], opacity=opacity),
+                customdata=customdata[keep],
+                hovertemplate=hover.replace("{chrom}", CHROMS[i]),
+                name=CHROMS[i],
+            )
+        )
+    return traces
 
 
 def _chrom_index(x: np.ndarray) -> np.ndarray:
@@ -821,41 +858,51 @@ def panel_2(
 ) -> go.Figure:
     """ATAC signal track across genome position.
 
-    ``detail`` (load_zscores rows inside the window) replaces the binned
-    overview with raw per-cCRE values when the window is narrow enough.
-    ``zrange`` is the z-score band of the last box selection, drawn as a
-    highlight.
+    ``detail`` (per-cCRE rows inside the window, with ``pos`` and
+    ``cancer_z``) replaces the binned overview with raw values when the
+    window is narrow enough; with the locus columns ``cCRE``/``start``/``end``
+    the hover names each cCRE and its interval. ``zrange`` is the z-score
+    band of the last box selection, drawn as a highlight.
     """
     if detail is None:
         x = np.asarray(row["p2_x"], dtype=float)
         y = np.asarray(row["p2_y"], dtype=float)
-        customdata = np.asarray(row["p2_n"], dtype=float)
-        hover = "position %{x}<br>z-score %{y:.2f}<br>cCREs %{customdata}<extra></extra>"
+        local_mb = (x - _CHROM_STARTS[_chrom_index(x).astype(int)]) / 1e6
+        customdata = np.column_stack([np.asarray(row["p2_n"], dtype=float), local_mb])
+        hover = (
+            "{chrom} ~%{customdata[1]:.1f} Mb<br>z-score %{y:.2f}<br>"
+            "cCREs %{customdata[0]:,}<extra></extra>"
+        )
         tier = ""
     else:
         x = detail["pos"].to_numpy().astype(float)
         y = detail["cancer_z"].to_numpy().astype(float)
-        customdata = None
-        hover = "position %{x}<br>z-score %{y:.3f}<extra></extra>"
+        if {"cCRE", "start", "end"} <= set(detail.columns) and (
+            detail["cCRE"].str.contains(f"^{CCRE_PREFIX}[0-9]{{7}}$").all()
+        ):
+            # Accession digits, not strings: a string per point triples the payload.
+            customdata = np.column_stack(
+                [
+                    detail["cCRE"].str.slice(len(CCRE_PREFIX)).cast(pl.Int32).to_numpy(),
+                    detail["start"].to_numpy(),
+                    detail["end"].to_numpy(),
+                ]
+            ).astype(np.int32)
+            hover = (
+                f"cCRE {CCRE_PREFIX}%{{customdata[0]:07d}}<br>"
+                "{chrom}:%{customdata[1]:,}–%{customdata[2]:,}<br>"
+                "z-score %{y:.3f}<extra></extra>"
+            )
+        else:
+            customdata = (x - _CHROM_STARTS[_chrom_index(x).astype(int)]).astype(np.int32)[:, None]
+            hover = "{chrom}:%{customdata[0]:,}<br>z-score %{y:.3f}<extra></extra>"
         tier = f" · per-cCRE detail ({len(y):,})"
-
-    # Same chromosome cycle as panel 1
-    chrom_idx = _chrom_index(x)
 
     win_mask = (x >= window[0]) & (x <= window[1])
     if hide_sentinel:
         win_mask &= ~sentinel_mask(y, binned=detail is None)
 
-    fig = go.Figure(
-        go.Scattergl(
-            x=x[win_mask],
-            y=y[win_mask],
-            mode="markers",
-            marker=_chrom_marker(chrom_idx, win_mask, size=3, opacity=0.8),
-            customdata=None if customdata is None else customdata[win_mask],
-            hovertemplate=hover,
-        )
-    )
+    fig = go.Figure(_chrom_traces(x, y, win_mask, customdata, hover, size=3, opacity=0.8))
     layout = genome_layout(
         f"2 · ATAC signal at each cCRE across genomic coordinates — {biosample}{tier}",
         "ATAC z-score (500 kb median)",
@@ -1221,6 +1268,7 @@ __all__ = [
     "CCRE_REFERENCE",
     "CCRE_REFERENCE_SCHEMA_VERSION",
     "CCRE_INDEX",
+    "CCRE_PREFIX",
     "CCRE_INDEX_DIR",
     "CCRE_INDEX_NAME",
     "CHROMS",

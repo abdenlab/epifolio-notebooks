@@ -224,14 +224,24 @@ def _(cnv, mo):
     get_window, set_window = mo.state(cnv.FULL_GENOME, allow_self_loops=True)
     # A panel-2 box also carries a z-score band for the ATAC tab's table.
     get_zrange, set_zrange = mo.state(None, allow_self_loops=True)
-    return get_window, get_zrange, set_window, set_zrange
+    # The panel whose selection was made last; its table shows on every tab.
+    get_table_source, set_table_source = mo.state(None)
+    return (
+        get_table_source,
+        get_window,
+        get_zrange,
+        set_table_source,
+        set_window,
+        set_zrange,
+    )
 
 
 @app.cell
-def _(cnv, mo, set_window, set_zrange):
+def _(cnv, mo, set_table_source, set_window, set_zrange):
     def _clear(_value):
         set_window(cnv.FULL_GENOME)
         set_zrange(None)
+        set_table_source(None)
 
     clear_selection = mo.ui.button(label="Clear selection", on_click=_clear)
     return (clear_selection,)
@@ -286,6 +296,7 @@ def _(
     get_window,
     mo,
     read_row,
+    set_table_source,
     set_window,
     set_zrange,
 ):
@@ -299,6 +310,7 @@ def _(
             set_window(moved)
             # A new genomic brush drops the previous panel-2 z-score band.
             set_zrange(None)
+            set_table_source("panel 1")
 
     panel1 = mo.ui.plotly(
         cnv.panel_1(p1_row, get_window(), biosample, cn_order),
@@ -324,6 +336,7 @@ def _(
     read_ccre_frame,
     read_zscores,
     read_row,
+    set_table_source,
     set_window,
     set_zrange,
 ):
@@ -347,6 +360,7 @@ def _(
         if moved:
             set_window(moved)
             set_zrange(clamp_zrange(panel2.ranges))
+            set_table_source("panel 2")
 
     panel2 = mo.ui.plotly(
         cnv.panel_2(
@@ -364,14 +378,17 @@ def _(
 
 
 @app.cell
-def _(biosample, cn_order, cnv, hide_sentinel, mo, read_row):
+def _(biosample, cn_order, cnv, hide_sentinel, mo, read_row, set_table_source):
     # H1: read the correct row for panel 3 (tag "3", not "1")
     p3_row = read_row(biosample, "3")
     # Hiding -10 needs only the published per-level sentinel counts.
     _sentinel_n = (
         read_row(biosample, "4")["violin_cancer_sentinel_n"] if hide_sentinel.value else None
     )
-    panel3 = mo.ui.plotly(cnv.panel_3(p3_row, cn_order, sentinel_n=_sentinel_n))
+    panel3 = mo.ui.plotly(
+        cnv.panel_3(p3_row, cn_order, sentinel_n=_sentinel_n),
+        on_change=lambda points: set_table_source("panel 3" if points else None),
+    )
     return p3_row, panel3
 
 
@@ -564,7 +581,15 @@ def _(ccre_frame, cnv, get_window, get_zrange, pl):
 
 
 @app.cell
-def _(dens_tbl, lasso_indices, panel5_widget, selection_sync, set_membership_selection, set_sel_bins):
+def _(
+    dens_tbl,
+    lasso_indices,
+    panel5_widget,
+    selection_sync,
+    set_membership_selection,
+    set_sel_bins,
+    set_table_source,
+):
     # A panel-5 lasso sets the shared selection directly, as bin coordinates.
     def sync5(change):
         idx = lasso_indices(change.get("new"))
@@ -576,6 +601,7 @@ def _(dens_tbl, lasso_indices, panel5_widget, selection_sync, set_membership_sel
         set_sel_bins(frozenset(zip(rows["cancer_z"].to_pylist(), rows["healthy_z"].to_pylist())))
         keys = tuple(sorted({int(value) for value in rows["bin_id"].to_pylist()}))
         set_membership_selection(("bins", keys) if keys else None)
+        set_table_source("panel 5/6" if keys else None)
 
     if panel5_widget is not None:
         panel5_widget.observe(sync5, names="selection")
@@ -593,6 +619,7 @@ def _(
     selection_sync,
     set_membership_selection,
     set_sel_bins,
+    set_table_source,
 ):
     # M3b: a panel-6 lasso maps to panel-5 bins through dens_inv before
     # joining the shared selection.
@@ -619,6 +646,7 @@ def _(
             )
         )
         set_membership_selection(("points", keys) if keys else None)
+        set_table_source("panel 5/6" if keys else None)
 
     if panel6_widget is not None:
         panel6_widget.observe(sync6, names="selection")
@@ -942,16 +970,23 @@ def _(read_ccre_frame):
 
 
 @app.cell
-def _(get_tab, table1, table2, table3, table4):
-    # The open tab's table, under the tab strip. Kept out of the tabs cell so
-    # a selection redraws only this table, never the panels (a re-run there
-    # remounts the panel 5/6 WebGL canvases blank).
+def _(ccre_view, get_table_source, table1, table2, table3, table4):
+    # The last selection's table, under the tab strip and kept across tabs.
+    # Kept out of the tabs cell so a selection redraws only this table, never
+    # the panels (a re-run there remounts the panel 5/6 WebGL canvases blank).
     {
-        "Copy number": table1,
-        "ATAC z-score": table2,
-        "CN counts & distributions": table3,
-        "Cancer vs healthy": table4,
-    }[get_tab()]
+        "panel 1": table1,
+        "panel 2": table2,
+        "panel 3": table3,
+        "panel 5/6": table4,
+    }.get(
+        get_table_source(),
+        ccre_view(
+            None,
+            "Select cCREs to list them here: brush panel 1, box-select panel 2, "
+            "click bars in panel 3, or lasso panel 5 or 6.",
+        ),
+    )
     return
 
 

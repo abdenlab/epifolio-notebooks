@@ -60,12 +60,12 @@ def _(DATA, cnv, mo):
         detail_error = str(exc)
 
     @mo.cache
-    def read_cancer_z(biosample: str):
+    def read_zscores(biosample: str):
         if detail_index is None:
             return None
-        return cnv.load_cancer_z(detail_index, biosample)
+        return cnv.load_zscores(detail_index, biosample)
 
-    return detail_error, detail_index, read_cancer_z
+    return detail_error, detail_index, read_zscores
 
 
 @app.cell
@@ -301,7 +301,7 @@ def _(
     hide_sentinel,
     mo,
     pl,
-    read_cancer_z,
+    read_zscores,
     read_row,
     set_window,
     set_zrange,
@@ -311,9 +311,9 @@ def _(
     # Raw per-cCRE values replace the binned overview once the window holds
     # at most DETAIL_MAX_ROWS cCREs.
     p2_detail = None
-    _cancer_z = read_cancer_z(biosample)
-    if _cancer_z is not None:
-        _in_window = _cancer_z.filter(pl.col("pos").is_between(*_window))
+    _zscores = read_zscores(biosample)
+    if _zscores is not None:
+        _in_window = _zscores.filter(pl.col("pos").is_between(*_window))
         if _in_window.height <= cnv.DETAIL_MAX_ROWS:
             p2_detail = _in_window
 
@@ -471,10 +471,11 @@ def _(active_cn, cn_order, cnv, jscatter, p6_row):
 
 
 @app.cell
-def _(biosample, loci, membership, read_cancer_z):
+def _(biosample, loci, membership, read_zscores):
     # Every tab's cCRE table filters this one frame. The split membership
     # artifact resolves cCRE identities and copy number (joined on rDHS);
-    # the detail tier adds the cancer z-score (joined on reference_index).
+    # the detail tier adds the cancer and healthy z-scores and the panel 5/6
+    # grid cell (joined on reference_index).
     ccre_frame = None
     if membership is not None and loci.height:
         ccre_frame = loci.join(
@@ -483,14 +484,27 @@ def _(biosample, loci, membership, read_cancer_z):
             right_on="cCRE_name",
             how="inner",
         )
-        _cancer_z = read_cancer_z(biosample)
-        if _cancer_z is not None:
+        _zscores = read_zscores(biosample)
+        if _zscores is not None:
             ccre_frame = ccre_frame.join(
-                _cancer_z.select("reference_index", "cancer_z"),
+                _zscores.select("reference_index", "cancer_z", "healthy_z", "bin_id"),
                 on="reference_index",
                 how="left",
             )
     return (ccre_frame,)
+
+
+@app.cell
+def _(ccre_frame, cnv, get_window, get_zrange, pl):
+    # The tab 1/2 genomic selection: the brushed window, narrowed by the
+    # panel-2 z-score band when there is one. None while nothing is brushed.
+    _window, _zrange = get_window(), get_zrange()
+    genomic_rows = None
+    if ccre_frame is not None and (_window != cnv.FULL_GENOME or _zrange is not None):
+        genomic_rows = ccre_frame.filter(pl.col("pos").is_between(*_window))
+        if _zrange is not None and "cancer_z" in genomic_rows.columns:
+            genomic_rows = genomic_rows.filter(pl.col("cancer_z").is_between(*_zrange))
+    return (genomic_rows,)
 
 
 @app.cell
@@ -557,17 +571,20 @@ def _(
 
 @app.cell
 def _(
+    active_cn,
     cn_tbl6,
+    cnv,
     dens_inv,
     dens_tbl,
+    genomic_rows,
     get_membership_selection,
     get_sel_bins,
     np,
+    pl,
 ):
-    # Resolve Panel 5/6 selections against the current tables. The split cCRE
-    # membership artifact has no scatter-bin membership, so genomic selection
-    # remains a separate cCRE-table filter; it must not clear or remap lasso
-    # selections in the raster panels.
+    # Resolve Panel 5/6 selections against the current tables. A lasso always
+    # wins; without one, a tab 1/2 genomic selection is shown on panels 5/6
+    # through each cCRE's bin_id, never written back as a lasso.
     sel_bins = get_sel_bins()
     membership_selection = get_membership_selection()
     lasso_active = membership_selection is not None or bool(sel_bins)
@@ -600,9 +617,19 @@ def _(
             else np.array([], dtype=np.int64)
         )
 
-    bin_pos = lasso_bin_pos if lasso_active else np.array([], dtype=np.int64)
-    cn6_pos = lasso_cn6_pos if lasso_active else np.array([], dtype=np.int64)
-    selection_active = lasso_active
+    if lasso_active:
+        bin_pos, cn6_pos = lasso_bin_pos, lasso_cn6_pos
+    elif genomic_rows is not None and genomic_rows["bin_id"].null_count() < genomic_rows.height:
+        bin_pos, cn6_pos = cnv.scatter_positions(
+            genomic_rows.filter(
+                pl.col("copy_number").is_in([cnv.cn_label(level) for level in active_cn])
+            ),
+            dens_tbl,
+            cn_tbl6,
+        )
+    else:
+        bin_pos = cn6_pos = np.array([], dtype=np.int64)
+    selection_active = lasso_active or len(bin_pos) > 0
 
     # D25: show whole-sample stats until a top-window or lasso selection is active.
     selected_dens = dens_tbl.take(bin_pos) if selection_active else dens_tbl
@@ -687,24 +714,21 @@ def _(
     ccre_unavailable,
     ccre_view,
     cnv,
-    get_window,
+    genomic_rows,
     get_zrange,
     hide_sentinel,
     pl,
 ):
-    _window, _zrange = get_window(), get_zrange()
     if ccre_frame is None:
         table2 = ccre_view(None, ccre_unavailable)
-    elif _window == cnv.FULL_GENOME and _zrange is None:
+    elif genomic_rows is None:
         table2 = ccre_view(
             None, "Box-select on panel 2 to list cCREs by genomic window and z-score."
         )
-    elif _zrange is not None and "cancer_z" not in ccre_frame.columns:
+    elif get_zrange() is not None and "cancer_z" not in ccre_frame.columns:
         table2 = ccre_view(None, "z-score selection needs the panel 2 detail tier.")
     else:
-        _rows = ccre_frame.filter(pl.col("pos").is_between(*_window))
-        if _zrange is not None:
-            _rows = _rows.filter(pl.col("cancer_z").is_between(*_zrange))
+        _rows = genomic_rows
         if hide_sentinel.value and "cancer_z" in _rows.columns:
             _rows = _rows.filter(pl.col("cancer_z") != cnv.SENTINEL)
         table2 = ccre_view(_rows, "cCREs in the panel 2 selection")
@@ -728,14 +752,32 @@ def _(ccre_frame, ccre_unavailable, ccre_view, cnv, picked_cn, pl):
 
 
 @app.cell
-def _(ccre_view):
-    # Panel 5/6 bins are (cancer z, healthy z); the detail tier carries only
-    # the cancer z per cCRE, so a lasso cannot be resolved to cCREs yet.
-    table4 = ccre_view(
-        None,
-        "Panel 5/6 lasso selections resolve to grid cells, not cCREs: the "
-        "published detail tier has no per-cCRE healthy z-score yet.",
-    )
+def _(
+    active_cn,
+    ccre_frame,
+    ccre_unavailable,
+    ccre_view,
+    cnv,
+    membership_selection,
+    meta,
+):
+    # A panel 5/6 lasso resolves to cCREs through each cCRE's bin_id, which
+    # load_zscores computes with the writer's own grid binning.
+    if ccre_frame is None:
+        table4 = ccre_view(None, ccre_unavailable)
+    elif not meta.get("healthy_available") or "bin_id" not in ccre_frame.columns:
+        table4 = ccre_view(
+            None,
+            "No per-cCRE healthy z-scores for this sample "
+            f"({meta.get('healthy_status')}), so panel 5/6 cells cannot list cCREs.",
+        )
+    elif membership_selection is None:
+        table4 = ccre_view(None, "Lasso points in panel 5 or 6 to list their cCREs.")
+    else:
+        table4 = ccre_view(
+            cnv.selection_ccres(ccre_frame, membership_selection, active_cn),
+            "cCREs in the panel 5/6 lasso",
+        )
     return (table4,)
 
 

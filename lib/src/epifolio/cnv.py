@@ -67,6 +67,7 @@ TABLE_COLUMNS = [
     "copy_number_code",
     "x_bin",
     "cancer_z",
+    "healthy_z",
 ]
 
 
@@ -481,19 +482,22 @@ def load_panel(dataset: Dataset, biosample: str, *panels: str) -> dict[str, obje
 
 
 # ---------------------------------------------------------------------------
-# Detail tier: raw per-cCRE cancer z-scores
+# Detail tier: raw per-cCRE cancer and healthy z-scores
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class DetailIndex:
-    """The detail manifest reduced to the biosample -> column map.
+    """The detail manifest reduced to the biosample -> column maps.
 
-    The detail parquet is wide: one float32 column per biosample, named
-    ``sNNNN``, with rows in genome order and ``reference_index`` pointing at
-    the ccre_reference.parquet row each value belongs to.
+    The detail parquet is wide: one float32 cancer column per biosample
+    (``sNNNN``) and one healthy column per ENCODE reference (``h_ENCSR…``),
+    with rows in genome order and ``reference_index`` pointing at the
+    ccre_reference.parquet row each value belongs to. ``healthy`` maps a
+    biosample to None when it has no healthy reference.
     """
 
     src: str
     columns: dict[str, str]
+    healthy: dict[str, str | None]
 
 
 def _read_text(src: str) -> str:
@@ -528,18 +532,31 @@ def load_detail_index(
     if read_metadata(src).get("detail_build_id") != manifest["build_id"]:
         raise ValueError("detail parquet does not match its manifest")
 
-    columns = {sample["biosample"]: sample["column"] for sample in contract["samples"]}
-    return DetailIndex(src=src, columns=columns)
+    samples = contract["samples"]
+    return DetailIndex(
+        src=src,
+        columns={sample["biosample"]: sample["column"] for sample in samples},
+        healthy={sample["biosample"]: sample["healthy_column"] for sample in samples},
+    )
 
 
-def load_cancer_z(index: DetailIndex, biosample: str) -> pl.DataFrame:
-    """Whole-genome cancer z-scores for one biosample, in genome order.
+def _grid_index(z: np.ndarray) -> np.ndarray:
+    """Grid bin of each raw z-score: left-closed bins, the last one right-closed."""
+    idx = np.searchsorted(GRID_EDGES, z, side="right") - 1
+    return np.where(z == GRID_EDGES[-1], N_GRID - 1, idx)
+
+
+def load_zscores(index: DetailIndex, biosample: str) -> pl.DataFrame:
+    """Whole-genome cancer and healthy z-scores for one biosample, in genome order.
 
     Returns ``reference_index``, genome-linear ``pos`` (point anchor is the
-    cCRE start, as in load_loci) and ``cancer_z``. One column read (~4 s
-    remote); windows are filtered from this frame rather than re-read.
+    cCRE start, as in load_loci), ``cancer_z``, ``healthy_z`` and ``bin_id``,
+    the cCRE's panel 5/6 grid cell in the grid_bin_id convention. The healthy
+    columns and ``bin_id`` are null without a healthy reference. Two column
+    reads (~7 s remote); windows are filtered from this frame, never re-read.
     """
-    return (
+    healthy = index.healthy[biosample]
+    frame = (
         pl.scan_parquet(index.src)
         .select(
             "reference_index",
@@ -548,8 +565,20 @@ def load_cancer_z(index: DetailIndex, biosample: str) -> pl.DataFrame:
                 + pl.col("start")
             ).alias("pos"),
             pl.col(index.columns[biosample]).alias("cancer_z"),
+            (pl.col(healthy) if healthy else pl.lit(None, dtype=pl.Float32)).alias("healthy_z"),
         )
         .collect()
+    )
+    if healthy is None:
+        return frame.with_columns(bin_id=pl.lit(None, dtype=pl.Int64))
+    # Same binning the writer used for scatter_cn_*; float64 edges on the
+    # float32 values reproduce the published panel 6 counts exactly.
+    cancer_idx = _grid_index(frame["cancer_z"].to_numpy().astype(np.float64))
+    healthy_idx = _grid_index(frame["healthy_z"].to_numpy().astype(np.float64))
+    return frame.with_columns(
+        bin_id=pl.when(pl.col("healthy_z").is_not_null()).then(
+            pl.Series(healthy_idx * N_GRID + cancer_idx, dtype=pl.Int64)
+        )
     )
 
 
@@ -766,7 +795,7 @@ def panel_2(
 ) -> go.Figure:
     """ATAC signal track across genome position.
 
-    ``detail`` (load_cancer_z rows inside the window) replaces the binned
+    ``detail`` (load_zscores rows inside the window) replaces the binned
     overview with raw per-cCRE values when the window is narrow enough.
     ``zrange`` is the z-score band of the last box selection, drawn as a
     highlight.
@@ -1121,6 +1150,46 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
     })
 
 
+# ---------------------------------------------------------------------------
+# Panel 5/6 selections <-> cCREs, through the per-cCRE bin_id of load_zscores
+# ---------------------------------------------------------------------------
+def selection_ccres(
+    frame: pl.DataFrame, selection: tuple[str, tuple], active_cn: list[str]
+) -> pl.DataFrame:
+    """The cCREs behind a panel 5/6 lasso.
+
+    ``("bins", bin_ids)`` comes from panel 5, whose cells aggregate the active
+    copy numbers; ``("points", ((bin_id, copy_number), ...))`` comes from
+    panel 6, whose cells are already split by copy number.
+    """
+    kind, keys = selection
+    if kind == "bins":
+        return frame.filter(
+            pl.col("bin_id").is_in(list(keys))
+            & pl.col("copy_number").is_in([cn_label(level) for level in active_cn])
+        )
+    cells = pl.DataFrame(
+        {"bin_id": [key[0] for key in keys], "copy_number": [key[1] for key in keys]},
+        schema={"bin_id": pl.Int64, "copy_number": pl.String},
+    )
+    return frame.join(cells, on=["bin_id", "copy_number"], how="semi")
+
+
+def scatter_positions(
+    rows: pl.DataFrame, dens_tbl: pa.Table, cn_tbl6: pa.Table
+) -> tuple[np.ndarray, np.ndarray]:
+    """Panel 5 and panel 6 row positions of the cells holding any of ``rows``."""
+    bins = rows["bin_id"].drop_nulls().unique().to_numpy()
+    bin_pos = np.flatnonzero(np.isin(np.asarray(dens_tbl["bin_id"]), bins))
+    cells = pl.from_arrow(cn_tbl6.select(["bin_id", "copy_number"])).with_row_index("row")
+    hit = cells.join(
+        rows.select("bin_id", "copy_number").drop_nulls().unique(),
+        on=["bin_id", "copy_number"],
+        how="semi",
+    )
+    return bin_pos.astype(np.int64), hit["row"].to_numpy().astype(np.int64)
+
+
 __all__ = [
     "CANCER_BLUE",
     "CCRE_REFERENCE",
@@ -1173,9 +1242,9 @@ __all__ = [
     "genome_layout",
     "load_cohort",
     "load_ccre_reference",
-    "load_cancer_z",
     "load_detail_index",
     "load_membership",
+    "load_zscores",
     "mapped_levels",
     "load_loci",
     "load_panel",
@@ -1189,6 +1258,8 @@ __all__ = [
     "panel_tags",
     "read_metadata",
     "rgba",
+    "scatter_positions",
+    "selection_ccres",
     "sentinel_mask",
     "source",
 ]

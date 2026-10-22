@@ -39,6 +39,14 @@ SENTINEL = -10.0
 
 VIOLIN_EDGES = np.linspace(Z_LIM[0], Z_LIM[1], N_VIOLIN_BINS + 1).tolist()
 GRID_EDGES = np.linspace(Z_LIM[0], Z_LIM[1], N_GRID + 1).tolist()
+# Panel 5/6 cell centres exactly as the writer publishes them: float32 bin
+# midpoints, stored as float64.
+GRID_CENTERS = (
+    ((np.asarray(GRID_EDGES[:-1]) + np.asarray(GRID_EDGES[1:])) / 2).astype(np.float32).astype(np.float64)
+)
+VIOLIN_CENTERS = (np.asarray(VIOLIN_EDGES[:-1]) + np.asarray(VIOLIN_EDGES[1:])) / 2
+# Half-width of the widest bin in each published violin outline.
+VIOLIN_HALF_WIDTH = 0.44
 HIST2D_SHAPE = [N_GRID, N_GRID]
 
 TRACKS = "summary_genome_tracks.parquet"
@@ -847,6 +855,17 @@ def sentinel_mask(y: np.ndarray, binned: bool) -> np.ndarray:
     return bin_of == np.searchsorted(GRID_EDGES, SENTINEL, side="right") - 1
 
 
+def drop_sentinel(frame: pl.DataFrame, columns: Iterable[str] = ("cancer_z",)) -> pl.DataFrame:
+    """Rows where none of ``columns`` holds the -10 sentinel; nulls are kept.
+
+    Columns the frame lacks (no detail tier) are skipped.
+    """
+    present = [name for name in columns if name in frame.columns]
+    if not present:
+        return frame
+    return frame.filter(pl.all_horizontal(pl.col(name).ne_missing(SENTINEL) for name in present))
+
+
 def panel_2(
     row: dict[str, object],
     window: tuple[float, float],
@@ -933,13 +952,24 @@ def panel_2(
 # ---------------------------------------------------------------------------
 # Panel 3 — cCRE count per copy-number state (src/panels.py:113-141)
 # ---------------------------------------------------------------------------
-def panel_3(row: dict[str, object], cn_order: list[str]) -> go.Figure:
-    """cCRE count per copy-number state (bar chart), Unmapped left out."""
+def panel_3(
+    row: dict[str, object],
+    cn_order: list[str],
+    sentinel_n: Iterable[int] | None = None,
+) -> go.Figure:
+    """cCRE count per copy-number state (bar chart), Unmapped left out.
+
+    ``sentinel_n`` (the published ``violin_cancer_sentinel_n``) is subtracted
+    per level to leave out cCREs whose cancer z-score is the -10 sentinel.
+    """
+    counts = list(row["cn_counts"])
+    if sentinel_n is not None:
+        counts = [count - n for count, n in zip(counts, sentinel_n, strict=True)]
     # Zip counts positionally against cn_order (E6 fix), then drop Unmapped
     # as a pair so the remaining bars keep their own counts.
     pairs = [
         (cn_label(level), count)
-        for level, count in zip(cn_order, row["cn_counts"], strict=True)
+        for level, count in zip(cn_order, counts, strict=True)
         if cn_label(level) != UNMAPPED
     ]
     labels3 = [label for label, _ in pairs]
@@ -1025,6 +1055,7 @@ def panel_4(
     qc = list(row["violin_q_cancer"])
     qh = list(row["violin_q_healthy"])
     vn = list(row["violin_n"])
+    vn_healthy = list(row.get("violin_healthy_n", vn))
 
     fig = go.Figure()
     seen4: set[str] = set()
@@ -1035,15 +1066,13 @@ def panel_4(
         if label == UNMAPPED or level not in active_cn:
             continue
         i = float(shown.index(label))
-        n_val = vn[idx] if idx < len(vn) else 0
-
         # One pass per tissue emitting polygon -> IQR bar -> median marker, so
         # trace order matches src/panels.py:155-200 exactly.
-        for vx, vy, quart, tissue, colour, side in (
+        for vx, vy, quart, n_val, tissue, colour, side in (
             (vc_x[idx], vc_y[idx], qc[idx] if idx < len(qc) else None,
-             "Cancer tissue", CANCER_BLUE, -1.0),
+             vn[idx] if idx < len(vn) else 0, "Cancer tissue", CANCER_BLUE, -1.0),
             (vh_x[idx], vh_y[idx], qh[idx] if idx < len(qh) else None,
-             "Healthy tissue", HEALTHY_ORANGE, 1.0),
+             vn_healthy[idx] if idx < len(vn_healthy) else 0, "Healthy tissue", HEALTHY_ORANGE, 1.0),
         ):
             # Violin polygon (src/panels.py:161-176)
             fig.add_trace(
@@ -1125,6 +1154,64 @@ def panel_4(
         yaxis=dict(title="Score", range=list(Z_LIM)),
     )
     return fig
+
+
+def violin_outline(counts: np.ndarray, position: float, side: float) -> tuple[list[float], list[float]]:
+    """The writer's half-violin outline for one histogram over VIOLIN_EDGES.
+
+    Width grows with the bin count up to VIOLIN_HALF_WIDTH at the widest bin,
+    on ``side`` (-1 cancer, +1 healthy) of ``position``, closed along it. An
+    empty level gets a zero-width outline, as published.
+    """
+    counts = np.asarray(counts, dtype=float)
+    if not len(counts):
+        return [], []
+    peak = counts.max()
+    width = counts / peak if peak > 0 else np.zeros_like(counts)
+    x = np.concatenate(
+        [position + side * VIOLIN_HALF_WIDTH * width, np.full(len(counts), float(position))]
+    )
+    y = np.concatenate([VIOLIN_CENTERS, VIOLIN_CENTERS[::-1]])
+    return x.tolist(), y.tolist()
+
+
+def drop_sentinel_violins(
+    row: dict[str, object], frame: pl.DataFrame, cn_order: list[str]
+) -> dict[str, object]:
+    """Panel 4 row with the -10 sentinels taken out of every violin.
+
+    Each level's published sentinel count leaves the histogram bin holding
+    SENTINEL, the outline is redrawn by violin_outline, and the quartiles are
+    recomputed from ``frame`` (per-cCRE ``copy_number``, ``cancer_z``,
+    ``healthy_z``) under the published quantile policy, numpy's linear
+    percentile. A tissue with no published values (no healthy reference)
+    keeps its published, empty violins.
+    """
+    sentinel_bin = int(np.searchsorted(VIOLIN_EDGES, SENTINEL, side="right") - 1)
+    by_level = frame.partition_by("copy_number", as_dict=True)
+    out = dict(row)
+    for tissue, side, n_key in (("cancer", -1.0, "violin_n"), ("healthy", 1.0, "violin_healthy_n")):
+        if not any(row[n_key]):
+            continue
+        column = f"{tissue}_z"
+        xs, ys, quartiles, ns = [], [], [], []
+        for idx, level in enumerate(cn_order):
+            counts = np.array(row[f"violin_{tissue}_counts"][idx], dtype=float)
+            counts[sentinel_bin] -= row[f"violin_{tissue}_sentinel_n"][idx]
+            x, y = violin_outline(counts, idx, side)
+            level_frame = by_level.get((cn_label(level),))
+            values = (
+                np.array([])
+                if level_frame is None
+                else drop_sentinel(level_frame, (column,))[column].drop_nulls().to_numpy()
+            )
+            xs.append(x)
+            ys.append(y)
+            quartiles.append(np.percentile(values, [25, 50, 75]).tolist() if len(values) else None)
+            ns.append(int(counts.sum()))
+        out[f"violin_{tissue}_x"], out[f"violin_{tissue}_y"] = xs, ys
+        out[f"violin_q_{tissue}"], out[n_key] = quartiles, ns
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -1223,6 +1310,27 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
     })
 
 
+def scatter_row(frame: pl.DataFrame) -> dict[str, object]:
+    """Panel 5/6 cells (the ``scatter_cn_*`` columns) recounted from per-cCRE bin_id.
+
+    From an unfiltered frame this reproduces the published cells exactly, so
+    a drop_sentinel frame redraws panels 5/6 without the -10 cCREs.
+    """
+    cells = (
+        frame.filter(pl.col("bin_id").is_not_null())
+        .group_by("bin_id", "copy_number")
+        .len()
+        .sort("bin_id", "copy_number")
+    )
+    bin_id = cells["bin_id"].to_numpy()
+    return {
+        "scatter_cn_x": GRID_CENTERS[bin_id % N_GRID],
+        "scatter_cn_y": GRID_CENTERS[bin_id // N_GRID],
+        "scatter_cn_level": cells["copy_number"].to_list(),
+        "scatter_cn_v": cells["len"].to_numpy(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Panel 5/6 selections <-> cCREs, through the per-cCRE bin_id of load_zscores
 # ---------------------------------------------------------------------------
@@ -1286,6 +1394,7 @@ __all__ = [
     "DetailIndex",
     "FULL_GENOME",
     "GENOME_LEN",
+    "GRID_CENTERS",
     "GRID_EDGES",
     "HEALTHY_ORANGE",
     "HIST2D_SHAPE",
@@ -1300,7 +1409,9 @@ __all__ = [
     "TABLE_COLUMNS",
     "TRACKS",
     "UNMAPPED",
+    "VIOLIN_CENTERS",
     "VIOLIN_EDGES",
+    "VIOLIN_HALF_WIDTH",
     "Z_LIM",
     "assert_edges_match",
     "bar_levels",
@@ -1312,6 +1423,8 @@ __all__ = [
     "cols_for",
     "density_table",
     "density_table_with_index",
+    "drop_sentinel",
+    "drop_sentinel_violins",
     "file_constants",
     "genome_layout",
     "load_cohort",
@@ -1335,8 +1448,10 @@ __all__ = [
     "read_metadata",
     "rgba",
     "scatter_positions",
+    "scatter_row",
     "selection_ccres",
     "sentinel_mask",
     "source",
+    "violin_outline",
     "zscore_frame",
 ]

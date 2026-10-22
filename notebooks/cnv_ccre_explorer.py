@@ -364,10 +364,14 @@ def _(
 
 
 @app.cell
-def _(biosample, cn_order, cnv, mo, read_row):
+def _(biosample, cn_order, cnv, hide_sentinel, mo, read_row):
     # H1: read the correct row for panel 3 (tag "3", not "1")
     p3_row = read_row(biosample, "3")
-    panel3 = mo.ui.plotly(cnv.panel_3(p3_row, cn_order))
+    # Hiding -10 needs only the published per-level sentinel counts.
+    _sentinel_n = (
+        read_row(biosample, "4")["violin_cancer_sentinel_n"] if hide_sentinel.value else None
+    )
+    panel3 = mo.ui.plotly(cnv.panel_3(p3_row, cn_order, sentinel_n=_sentinel_n))
     return p3_row, panel3
 
 
@@ -382,16 +386,30 @@ def _(cn_order, cnv, panel3):
 
 
 @app.cell
-def _(active_cn, biosample, cn_order, cnv, mo, read_row):
+def _(active_cn, biosample, cn_order, cnv, hide_sentinel, mo, read_ccre_frame, read_row):
     p4_row = read_row(biosample, "4")
-    panel4 = mo.ui.plotly(cnv.panel_4(p4_row, active_cn, cn_order, biosample))
+    # With -10 hidden the violins are rebuilt from per-cCRE z-scores, so only
+    # then does this cell wait on the detail read.
+    _row = p4_row
+    if hide_sentinel.value:
+        _frame = read_ccre_frame()
+        if _frame is not None and {"cancer_z", "healthy_z"} <= set(_frame.columns):
+            _row = cnv.drop_sentinel_violins(p4_row, _frame, cn_order)
+    panel4 = mo.ui.plotly(cnv.panel_4(_row, active_cn, cn_order, biosample))
     return p4_row, panel4
 
 
 @app.cell
-def _(biosample, read_row):
+def _(biosample, cnv, hide_sentinel, read_ccre_frame, read_row):
     p6_row = read_row(biosample, "6")
-    return (p6_row,)
+    # Panels 5/6 draw the published cells, or with -10 hidden recount them
+    # from per-cCRE bin_id, leaving out cCREs at -10 on either axis.
+    scatter_source = p6_row
+    if hide_sentinel.value:
+        _frame = read_ccre_frame()
+        if _frame is not None and "bin_id" in _frame.columns:
+            scatter_source = cnv.scatter_row(cnv.drop_sentinel(_frame, ("cancer_z", "healthy_z")))
+    return p6_row, scatter_source
 
 
 @app.cell
@@ -421,11 +439,11 @@ def _(mo):
 
 
 @app.cell
-def _(active_cn, cn_order, cnv, jscatter, p6_row):
+def _(active_cn, cn_order, cnv, jscatter, scatter_source):
     # D6/M3a: density_table_with_index does the same np.unique aggregation as
     # density_table, but also returns inv — the panel-6-row -> panel-5-bin map
     # that used to be discarded (cnvpostpr.md §3).
-    density = cnv.density_table_with_index(p6_row, active_cn, cn_order)
+    density = cnv.density_table_with_index(scatter_source, active_cn, cn_order)
     dens_tbl, dens_inv = density.table, density.inv
 
     # jscatter cannot draw an empty table: no healthy reference, or a
@@ -461,12 +479,12 @@ def _(active_cn, cn_order, cnv, jscatter, p6_row):
 
 
 @app.cell
-def _(active_cn, cn_order, cnv, jscatter, p6_row):
+def _(active_cn, cn_order, cnv, jscatter, scatter_source):
     # D5: add color_map with correct palette hexes
     palette6 = cnv.cn_colors(cn_order)
     color_map6 = {cnv.cn_label(c): hex_val for c, hex_val in palette6.items()}
 
-    cn_tbl6 = cnv.cn_table(p6_row, active_cn, cn_order)
+    cn_tbl6 = cnv.cn_table(scatter_source, active_cn, cn_order)
 
     # Same empty-table guard as panel 5.
     scatter6 = None
@@ -732,17 +750,17 @@ def _(cnv, membership_error, mo):
 
 
 @app.cell
-def _(ccre_frame, ccre_unavailable, ccre_view, cnv, get_window, pl):
+def _(ccre_frame, ccre_unavailable, ccre_view, cnv, get_window, hide_sentinel, pl):
     _window = get_window()
     if ccre_frame is None:
         table1 = ccre_view(None, ccre_unavailable)
     elif _window == cnv.FULL_GENOME:
         table1 = ccre_view(None, "Brush panel 1 to list the cCREs in a genomic window.")
     else:
-        table1 = ccre_view(
-            ccre_frame.filter(pl.col("pos").is_between(*_window)),
-            "cCREs in the brushed window",
-        )
+        _rows = ccre_frame.filter(pl.col("pos").is_between(*_window))
+        if hide_sentinel.value:
+            _rows = cnv.drop_sentinel(_rows)
+        table1 = ccre_view(_rows, "cCREs in the brushed window")
     return (table1,)
 
 
@@ -755,7 +773,6 @@ def _(
     genomic_rows,
     get_zrange,
     hide_sentinel,
-    pl,
 ):
     if ccre_frame is None:
         table2 = ccre_view(None, ccre_unavailable)
@@ -766,24 +783,25 @@ def _(
     elif get_zrange() is not None and "cancer_z" not in ccre_frame.columns:
         table2 = ccre_view(None, "z-score selection needs the panel 2 detail tier.")
     else:
-        _rows = genomic_rows
-        if hide_sentinel.value and "cancer_z" in _rows.columns:
-            _rows = _rows.filter(pl.col("cancer_z") != cnv.SENTINEL)
+        _rows = cnv.drop_sentinel(genomic_rows) if hide_sentinel.value else genomic_rows
         table2 = ccre_view(_rows, "cCREs in the panel 2 selection")
     return (table2,)
 
 
 @app.cell
-def _(ccre_frame, ccre_unavailable, ccre_view, cnv, picked_cn, pl):
+def _(ccre_frame, ccre_unavailable, ccre_view, cnv, hide_sentinel, picked_cn, pl):
     if ccre_frame is None:
         table3 = ccre_view(None, ccre_unavailable)
     elif not picked_cn:
         table3 = ccre_view(None, "Click bars in panel 3 to list the cCREs at those copy numbers.")
     else:
+        _rows = ccre_frame.filter(
+            pl.col("copy_number").is_in([cnv.cn_label(level) for level in picked_cn])
+        )
+        if hide_sentinel.value:
+            _rows = cnv.drop_sentinel(_rows)
         table3 = ccre_view(
-            ccre_frame.filter(
-                pl.col("copy_number").is_in([cnv.cn_label(level) for level in picked_cn])
-            ),
+            _rows,
             f"cCREs at copy number {', '.join(cnv.cn_label(level) for level in picked_cn)}",
         )
     return (table3,)
@@ -796,6 +814,7 @@ def _(
     ccre_unavailable,
     ccre_view,
     cnv,
+    hide_sentinel,
     membership_selection,
     meta,
 ):
@@ -812,10 +831,10 @@ def _(
     elif membership_selection is None:
         table4 = ccre_view(None, "Lasso points in panel 5 or 6 to list their cCREs.")
     else:
-        table4 = ccre_view(
-            cnv.selection_ccres(ccre_frame, membership_selection, active_cn),
-            "cCREs in the panel 5/6 lasso",
-        )
+        _rows = cnv.selection_ccres(ccre_frame, membership_selection, active_cn)
+        if hide_sentinel.value:
+            _rows = cnv.drop_sentinel(_rows, ("cancer_z", "healthy_z"))
+        table4 = ccre_view(_rows, "cCREs in the panel 5/6 lasso")
     return (table4,)
 
 
@@ -865,12 +884,12 @@ def _(
             "ATAC z-score": mo.vstack(
                 [
                     mo.hstack(
-                        [
-                            mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")
+                        [clear_selection]
+                        + (
+                            [mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")]
                             if detail_error
-                            else hide_sentinel,
-                            clear_selection,
-                        ],
+                            else []
+                        ),
                         justify="start",
                         gap=1.5,
                     ),
@@ -904,7 +923,9 @@ def _(
     )
     mo.vstack(
         [
-            mo.hstack([cancer_dd, patient_dd, aliquot_dd], justify="start", gap=1.5),
+            mo.hstack(
+                [cancer_dd, patient_dd, aliquot_dd, hide_sentinel], justify="start", gap=1.5
+            ),
             sections,
         ],
         gap=2,

@@ -59,13 +59,29 @@ def _(DATA, cnv, mo):
         detail_index = None
         detail_error = str(exc)
 
+    # A sample switch reads only its value columns: the coordinates are read
+    # once, and a healthy column is shared by every sample on that ENCODE
+    # reference. LRU bounds keep memory flat while browsing samples.
     @mo.cache
+    def read_coords():
+        return cnv.load_coords(detail_index)
+
+    @mo.lru_cache(maxsize=4)
+    def read_healthy_column(column: str):
+        return cnv.load_detail_column(detail_index, column)
+
+    @mo.lru_cache(maxsize=4)
     def read_zscores(biosample: str):
         if detail_index is None:
             return None
-        return cnv.load_zscores(detail_index, biosample)
+        healthy = detail_index.healthy[biosample]
+        return cnv.zscore_frame(
+            read_coords(),
+            cnv.load_detail_column(detail_index, detail_index.columns[biosample]),
+            None if healthy is None else read_healthy_column(healthy),
+        )
 
-    return detail_error, detail_index, read_zscores
+    return detail_error, detail_index, read_coords, read_healthy_column, read_zscores
 
 
 @app.cell
@@ -181,7 +197,7 @@ def _(biosample, read_row):
 
 @app.cell
 def _(biosample, ccre_reference, ccre_reference_error, cn_order, cnv, loci, loci_error, mo):
-    @mo.cache
+    @mo.lru_cache(maxsize=4)
     def read_membership(sample: str, expected_n_ccre: int, order: tuple[str, ...]):
         return cnv.load_membership(
             sample,

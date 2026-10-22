@@ -374,22 +374,21 @@ def load_membership(
     if frame.height != 1:
         raise KeyError(f"membership artifact has {frame.height} rows for biosample {biosample!r}; expected 1")
 
-    copy_number_code = list(frame.row(0, named=True)["copy_number_code"])
+    codes = np.asarray(frame["copy_number_code"][0].to_numpy(), dtype=np.int64)
     n_ccre = reference.height
     if expected_n_ccre is not None and n_ccre != expected_n_ccre:
         raise ValueError(f"cCRE reference n_ccre={n_ccre}; expected {expected_n_ccre}")
-    if len(copy_number_code) != n_ccre:
+    if len(codes) != n_ccre:
         raise ValueError(
-            f"membership copy_number_code length={len(copy_number_code)}; expected {n_ccre}"
+            f"membership copy_number_code length={len(codes)}; expected {n_ccre}"
         )
 
-    codes = np.asarray(copy_number_code, dtype=np.int64)
     if np.any((codes < 0) | (codes >= len(declared))):
         raise ValueError("membership copy_number_code contains an unknown code")
 
     return reference.with_columns(
         pl.Series("copy_number_code", codes, dtype=pl.UInt8),
-        pl.Series("copy_number", [declared[int(code)] for code in codes]),
+        pl.Series("copy_number", declared, dtype=pl.String).gather(codes),
     )
 
 
@@ -546,17 +545,13 @@ def _grid_index(z: np.ndarray) -> np.ndarray:
     return np.where(z == GRID_EDGES[-1], N_GRID - 1, idx)
 
 
-def load_zscores(index: DetailIndex, biosample: str) -> pl.DataFrame:
-    """Whole-genome cancer and healthy z-scores for one biosample, in genome order.
+def load_coords(index: DetailIndex) -> pl.DataFrame:
+    """The detail rows' ``reference_index`` and genome-linear ``pos``.
 
-    Returns ``reference_index``, genome-linear ``pos`` (point anchor is the
-    cCRE start, as in load_loci), ``cancer_z``, ``healthy_z`` and ``bin_id``,
-    the cCRE's panel 5/6 grid cell in the grid_bin_id convention. The healthy
-    columns and ``bin_id`` are null without a healthy reference. Two column
-    reads (~7 s remote); windows are filtered from this frame, never re-read.
+    The same for every biosample, so read once per session. ``pos`` anchors
+    each point at the cCRE start, as in load_loci.
     """
-    healthy = index.healthy[biosample]
-    frame = (
+    return (
         pl.scan_parquet(index.src)
         .select(
             "reference_index",
@@ -564,10 +559,31 @@ def load_zscores(index: DetailIndex, biosample: str) -> pl.DataFrame:
                 pl.col("chrom").replace_strict(CHROM_OFFSET, return_dtype=pl.Int64)
                 + pl.col("start")
             ).alias("pos"),
-            pl.col(index.columns[biosample]).alias("cancer_z"),
-            (pl.col(healthy) if healthy else pl.lit(None, dtype=pl.Float32)).alias("healthy_z"),
         )
         .collect()
+    )
+
+
+def load_detail_column(index: DetailIndex, column: str) -> pl.Series:
+    """One float32 detail column, cancer (``sNNNN``) or healthy (``h_ENCSR…``)."""
+    return pl.scan_parquet(index.src).select(column).collect().to_series()
+
+
+def zscore_frame(
+    coords: pl.DataFrame, cancer: pl.Series, healthy: pl.Series | None
+) -> pl.DataFrame:
+    """Whole-genome cancer and healthy z-scores for one biosample, in genome order.
+
+    Columns from one detail file share its row order, so ``coords`` and the
+    value columns line up by position. Returns ``reference_index``, ``pos``,
+    ``cancer_z``, ``healthy_z`` and ``bin_id``, the cCRE's panel 5/6 grid cell
+    in the grid_bin_id convention. The healthy columns and ``bin_id`` are null
+    without a healthy reference. Windows are filtered from this frame, never
+    re-read.
+    """
+    frame = coords.with_columns(
+        cancer.alias("cancer_z"),
+        (pl.lit(None, dtype=pl.Float32) if healthy is None else healthy).alias("healthy_z"),
     )
     if healthy is None:
         return frame.with_columns(bin_id=pl.lit(None, dtype=pl.Int64))
@@ -579,6 +595,16 @@ def load_zscores(index: DetailIndex, biosample: str) -> pl.DataFrame:
         bin_id=pl.when(pl.col("healthy_z").is_not_null()).then(
             pl.Series(healthy_idx * N_GRID + cancer_idx, dtype=pl.Int64)
         )
+    )
+
+
+def load_zscores(index: DetailIndex, biosample: str) -> pl.DataFrame:
+    """zscore_frame for one biosample in a single call (coordinates re-read)."""
+    healthy = index.healthy[biosample]
+    return zscore_frame(
+        load_coords(index),
+        load_detail_column(index, index.columns[biosample]),
+        None if healthy is None else load_detail_column(index, healthy),
     )
 
 
@@ -1241,7 +1267,9 @@ __all__ = [
     "file_constants",
     "genome_layout",
     "load_cohort",
+    "load_coords",
     "load_ccre_reference",
+    "load_detail_column",
     "load_detail_index",
     "load_membership",
     "load_zscores",
@@ -1262,4 +1290,5 @@ __all__ = [
     "selection_ccres",
     "sentinel_mask",
     "source",
+    "zscore_frame",
 ]

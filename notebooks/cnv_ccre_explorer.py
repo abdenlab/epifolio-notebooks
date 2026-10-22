@@ -288,6 +288,34 @@ def _(np):
 
 
 @app.cell
+def _(aliquot_dd, cancer_dd, hide_sentinel, mo, patient_dd):
+    mo.hstack([cancer_dd, patient_dd, aliquot_dd, hide_sentinel], justify="start", gap=1.5)
+    return
+
+
+@app.cell
+def _(mo):
+    # The tab strip only; each tab's panels draw from their own cell below.
+    # marimo re-runs every cell that references a UI element whenever its
+    # value changes (a brush, a zoom, a pan), except the cell defining it, so
+    # panels 1 and 2 are drawn by their defining cells: a panel 1/2
+    # interaction then redraws just that panel, never every tab.
+    sections = mo.ui.tabs(
+        {
+            name: ""
+            for name in (
+                "Copy number",
+                "ATAC z-score",
+                "CN counts & distributions",
+                "Cancer vs healthy",
+            )
+        }
+    )
+    sections
+    return (sections,)
+
+
+@app.cell
 def _(
     biosample,
     clamp_window,
@@ -296,6 +324,7 @@ def _(
     get_window,
     mo,
     read_row,
+    sections,
     set_table_source,
     set_window,
     set_zrange,
@@ -312,11 +341,14 @@ def _(
             set_zrange(None)
             set_table_source("panel 1")
 
-    panel1 = mo.ui.plotly(
-        cnv.panel_1(p1_row, get_window(), biosample, cn_order),
-        on_change=sync1,
-        config={"responsive": True},
-    )
+    panel1 = None
+    if sections.value == "Copy number":
+        panel1 = mo.ui.plotly(
+            cnv.panel_1(p1_row, get_window(), biosample, cn_order),
+            on_change=sync1,
+            config={"responsive": True},
+        )
+    panel1
     return panel1, p1_row, sync1
 
 
@@ -325,7 +357,9 @@ def _(
     biosample,
     clamp_window,
     clamp_zrange,
+    clear_selection,
     cnv,
+    detail_error,
     detail_index,
     get_window,
     get_zrange,
@@ -336,18 +370,20 @@ def _(
     read_ccre_frame,
     read_zscores,
     read_row,
+    sections,
     set_table_source,
     set_window,
     set_zrange,
 ):
     p2_row = read_row(biosample, "2")
     _window = get_window()
+    _shown = sections.value == "ATAC z-score"
     # Raw per-cCRE values replace the binned overview once the window holds
     # at most DETAIL_MAX_ROWS cCREs. The locus table counts the window, so a
     # wide window never waits on the detail read.
     p2_detail = None
     _n_window = loci.filter(pl.col("pos").is_between(*_window)).height if loci.height else 0
-    if detail_index is not None and _n_window <= cnv.DETAIL_MAX_ROWS:
+    if _shown and detail_index is not None and _n_window <= cnv.DETAIL_MAX_ROWS:
         _frame = read_ccre_frame()
         if _frame is None or "cancer_z" not in _frame.columns:
             _frame = read_zscores(biosample)
@@ -362,17 +398,39 @@ def _(
             set_zrange(clamp_zrange(panel2.ranges))
             set_table_source("panel 2")
 
-    panel2 = mo.ui.plotly(
-        cnv.panel_2(
-            p2_row,
-            _window,
-            biosample,
-            hide_sentinel=hide_sentinel.value,
-            detail=p2_detail,
-            zrange=get_zrange(),
-        ),
-        on_change=sync2,
-        config={"responsive": True},
+    panel2 = None
+    if _shown:
+        panel2 = mo.ui.plotly(
+            cnv.panel_2(
+                p2_row,
+                _window,
+                biosample,
+                hide_sentinel=hide_sentinel.value,
+                detail=p2_detail,
+                zrange=get_zrange(),
+            ),
+            on_change=sync2,
+            config={"responsive": True},
+        )
+    (
+        mo.vstack(
+            [
+                mo.hstack(
+                    [clear_selection]
+                    + (
+                        [mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")]
+                        if detail_error
+                        else []
+                    ),
+                    justify="start",
+                    gap=1.5,
+                ),
+                panel2,
+            ],
+            gap=1.5,
+        )
+        if _shown
+        else None
     )
     return p2_detail, panel2, p2_row, sync2
 
@@ -880,90 +938,45 @@ def _(meta, mo):
 
 
 @app.cell
-def _(mo):
-    # Remembers the open tab: the tabs cell re-runs (and would reset) whenever a panel changes.
-    get_tab, set_tab = mo.state("Copy number")
-    return get_tab, set_tab
+def _(mo, panel3, panel4, sections):
+    (
+        mo.hstack([panel3, panel4], widths="equal", gap=1.5)
+        if sections.value == "CN counts & distributions"
+        else None
+    )
+    return
 
 
 @app.cell
-def _(
-    aliquot_dd,
-    biosample,
-    cancer_dd,
-    clear_selection,
-    detail_error,
-    get_tab,
-    hide_sentinel,
-    mo,
-    panel1,
-    panel2,
-    panel3,
-    panel4,
-    panel5_widget,
-    panel6_widget,
-    patient_dd,
-    set_tab,
-    scatter_note,
-):
-    sections = mo.ui.tabs(
-        {
-            "Copy number": panel1,
-            "ATAC z-score": mo.vstack(
-                [
-                    mo.hstack(
-                        [clear_selection]
-                        + (
-                            [mo.md(f"*Panel 2 detail tier unavailable: {detail_error}*")]
-                            if detail_error
-                            else []
-                        ),
-                        justify="start",
-                        gap=1.5,
-                    ),
-                    panel2,
-                ],
-                gap=1.5,
-            ),
-            "CN counts & distributions": mo.hstack([panel3, panel4], widths="equal", gap=1.5),
-            "Cancer vs healthy": mo.hstack(
-                [
-                    mo.vstack(
-                        [
-                            mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
-                            scatter_note if panel5_widget is None else panel5_widget,
-                        ]
-                    ),
-                    mo.vstack(
-                        [
-                            mo.md(f"### 6 · Copy-number-stratified z-score scatter — {biosample}"),
-                            scatter_note if panel6_widget is None else panel6_widget,
-                        ]
-                    ),
-                ],
-                widths="equal",
-                gap=1.5,
-            ),
-        },
-        value=get_tab(),
-        on_change=set_tab,
-        lazy=True,
+def _(biosample, mo, panel5_widget, panel6_widget, scatter_note, sections):
+    (
+        mo.hstack(
+            [
+                mo.vstack(
+                    [
+                        mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
+                        scatter_note if panel5_widget is None else panel5_widget,
+                    ]
+                ),
+                mo.vstack(
+                    [
+                        mo.md(f"### 6 · Copy-number-stratified z-score scatter — {biosample}"),
+                        scatter_note if panel6_widget is None else panel6_widget,
+                    ]
+                ),
+            ],
+            widths="equal",
+            gap=1.5,
+        )
+        if sections.value == "Cancer vs healthy"
+        else None
     )
-    mo.vstack(
-        [
-            mo.hstack(
-                [cancer_dd, patient_dd, aliquot_dd, hide_sentinel], justify="start", gap=1.5
-            ),
-            sections,
-        ],
-        gap=2,
-    )
-    return (sections,)
+    return
 
 
 @app.cell
 def _(read_ccre_frame):
-    # Registered after the tabs cell: marimo runs ready cells in file order,
+    # Registered after the panel cells: marimo runs ready cells in file order,
     # so the panels render before this waits on the detail read.
     ccre_frame = read_ccre_frame()
     return (ccre_frame,)
@@ -973,8 +986,7 @@ def _(read_ccre_frame):
 def _(get_table_source, table1, table2, table3, table4):
     # The last selection's table, under the tab strip and kept across tabs;
     # nothing until a first selection. Kept out of the tabs cell so a
-    # selection redraws only this table, never the panels (a re-run there
-    # remounts the panel 5/6 WebGL canvases blank).
+    # selection redraws only this table, never the panels.
     {
         "panel 1": table1,
         "panel 2": table2,

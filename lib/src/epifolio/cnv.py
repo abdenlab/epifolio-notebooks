@@ -65,6 +65,9 @@ DETAIL_SCHEMA_VERSION = "2"
 # Panel 2 switches from the binned overview to raw per-cCRE z-scores once the
 # window covers at most this many cCREs (chr1, the largest, is ~204k).
 DETAIL_MAX_ROWS = 250_000
+# Adjacent overview x bins merged into one point when panel 2 shows the whole
+# genome (~4.7k bins on a plot ~1.5k px wide).
+OVERVIEW_MERGE = 3
 # Columns shown in every per-tab cCRE table. rDHS is the join key between
 # the locus table and the membership artifact and is never displayed.
 TABLE_COLUMNS = [
@@ -688,11 +691,14 @@ def _chrom_traces(
     *,
     size: int,
     opacity: float,
+    x_dtype: type = np.float64,
 ) -> list[go.Scattergl]:
     """One Scattergl per chromosome under ``mask``, coloured as in panel 1.
 
     A trace per chromosome lets the hover name its chromosome without a
     string per point: ``{chrom}`` in ``hover`` becomes the chromosome name.
+    ``y`` is sent as float32 and ``x`` as ``x_dtype``: float32 is exact
+    enough for binned centres, not for per-cCRE positions.
     """
     chrom_idx = _chrom_index(x).astype(int)
     traces = []
@@ -700,8 +706,8 @@ def _chrom_traces(
         keep = mask & (chrom_idx == i)
         traces.append(
             go.Scattergl(
-                x=x[keep],
-                y=y[keep],
+                x=x[keep].astype(x_dtype),
+                y=y[keep].astype(np.float32),
                 mode="markers",
                 marker=dict(size=size, color=_DARK24[i % len(_DARK24)], opacity=opacity),
                 customdata=customdata[keep],
@@ -710,6 +716,24 @@ def _chrom_traces(
             )
         )
     return traces
+
+
+def _coarsen_overview(
+    x: np.ndarray, y: np.ndarray, n: np.ndarray, factor: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Merge every ``factor`` adjacent overview x bins within a chromosome.
+
+    Counts add up per (merged bin, z bin), so the total is unchanged; a
+    merged bin sits at the mean of its bins' centres.
+    """
+    ux, xi = np.unique(x, return_inverse=True)
+    chrom = _chrom_index(ux).astype(np.int64)
+    rank = np.arange(len(ux)) - np.searchsorted(chrom, chrom)
+    group = np.unique(chrom * len(ux) + rank // factor, return_inverse=True)[1]
+    centre = np.bincount(group, weights=ux) / np.bincount(group)
+    uy, yi = np.unique(y, return_inverse=True)
+    key, inv = np.unique(group[xi] * len(uy) + yi, return_inverse=True)
+    return centre[key // len(uy)], uy[key % len(uy)], np.bincount(inv, weights=n)
 
 
 def _chrom_index(x: np.ndarray) -> np.ndarray:
@@ -886,8 +910,11 @@ def panel_2(
     if detail is None:
         x = np.asarray(row["p2_x"], dtype=float)
         y = np.asarray(row["p2_y"], dtype=float)
+        n = np.asarray(row["p2_n"], dtype=float)
+        if window == FULL_GENOME:
+            x, y, n = _coarsen_overview(x, y, n, OVERVIEW_MERGE)
         local_mb = (x - _CHROM_STARTS[_chrom_index(x).astype(int)]) / 1e6
-        customdata = np.column_stack([np.asarray(row["p2_n"], dtype=float), local_mb])
+        customdata = np.column_stack([n, local_mb]).astype(np.float32)
         hover = (
             "{chrom} ~%{customdata[1]:.1f} Mb<br>z-score %{y:.2f}<br>"
             "cCREs %{customdata[0]:,}<extra></extra>"
@@ -921,7 +948,18 @@ def panel_2(
     if hide_sentinel:
         win_mask &= ~sentinel_mask(y, binned=detail is None)
 
-    fig = go.Figure(_chrom_traces(x, y, win_mask, customdata, hover, size=3, opacity=0.8))
+    fig = go.Figure(
+        _chrom_traces(
+            x,
+            y,
+            win_mask,
+            customdata,
+            hover,
+            size=3,
+            opacity=0.8,
+            x_dtype=np.float32 if detail is None else np.float64,
+        )
+    )
     layout = genome_layout(
         f"2 · ATAC signal at each cCRE across genomic coordinates — {biosample}{tier}",
         "ATAC z-score (500 kb median)",
@@ -1403,6 +1441,7 @@ __all__ = [
     "MEMBERSHIP_SCHEMA_VERSION",
     "N_GRID",
     "N_VIOLIN_BINS",
+    "OVERVIEW_MERGE",
     "REMOTE",
     "SCHEMA_VERSION",
     "SENTINEL",

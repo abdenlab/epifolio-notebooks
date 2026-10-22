@@ -30,10 +30,10 @@ from epifolio.colors import load_color_map
 # ---------------------------------------------------------------------------
 # Payload schema and metadata contract
 # ---------------------------------------------------------------------------
-SCHEMA_VERSION = "4"
-N_VIOLIN_BINS = 400
-N_GRID = 300
-Z_LIM = (-14.0, 11.0)
+SCHEMA_VERSION = "5"
+N_VIOLIN_BINS = 464
+N_GRID = 348
+Z_LIM = (-18.0, 11.0)
 # Missing-ATAC marker kept in every v4 histogram (file metadata sentinel_value).
 SENTINEL = -10.0
 
@@ -45,10 +45,13 @@ TRACKS = "summary_genome_tracks.parquet"
 DISTRIBUTIONS = "summary_signal_distributions.parquet"
 CCRE_REFERENCE = "ccre_reference.parquet"
 MEMBERSHIP = "summary_ccre_membership.parquet"
-MEMBERSHIP_SCHEMA_VERSION = "1"
+MEMBERSHIP_SCHEMA_VERSION = "2"
+CCRE_REFERENCE_SCHEMA_VERSION = "1"
+# cn_order level for cCREs outside every ASCAT segment; panels 3-4 leave it out.
+UNMAPPED = "Unmapped"
 DETAIL = "atac_zscore_detail.parquet"
 DETAIL_MANIFEST = "detail_manifest.json"
-DETAIL_SCHEMA_VERSION = "1"
+DETAIL_SCHEMA_VERSION = "2"
 # Panel 2 switches from the binned overview to raw per-cCRE z-scores once the
 # window covers at most this many cCREs (chr1, the largest, is ~204k).
 DETAIL_MAX_ROWS = 250_000
@@ -153,18 +156,17 @@ HEALTHY_ORANGE = "#f58518"
 
 
 def cn_label(level: object) -> str:
-    """Normalize copy-number level labels across payload panels."""
-    text = str(level)
-    if text in {"4+", "Missing"}:
-        return text
-    try:
-        return f"{float(text):.1f}"
-    except ValueError:
-        return text
+    """Copy-number label; schema 5 publishes cn_order strings exactly everywhere."""
+    return str(level)
+
+
+def mapped_levels(cn_order: Iterable[object]) -> list[str]:
+    """cn_order without UNMAPPED: the levels panels 1, 3 and 4 draw."""
+    return [cn_label(level) for level in cn_order if cn_label(level) != UNMAPPED]
 
 
 def grid_bin_id(x: Iterable[float], y: Iterable[float]) -> np.ndarray:
-    """Return stable row/bin IDs for the published 192x192 grid centers."""
+    """Return stable row/bin IDs for the published N_GRID x N_GRID grid centers."""
     x_array = np.asarray(list(x), dtype=float)
     y_array = np.asarray(list(y), dtype=float)
     x_idx = np.searchsorted(GRID_EDGES, x_array, side="right") - 1
@@ -278,10 +280,10 @@ def load_ccre_reference(src: str | None = None) -> pl.DataFrame:
     src = src or ccre_reference_source()
     try:
         metadata = read_metadata(src)
-        if metadata.get("schema_version") != MEMBERSHIP_SCHEMA_VERSION:
+        if metadata.get("schema_version") != CCRE_REFERENCE_SCHEMA_VERSION:
             raise ValueError(
                 f"cCRE reference schema_version={metadata.get('schema_version')!r}; "
-                f"expected {MEMBERSHIP_SCHEMA_VERSION!r}"
+                f"expected {CCRE_REFERENCE_SCHEMA_VERSION!r}"
             )
         if str(metadata.get("n_genome_bins")) != "5000":
             raise ValueError("cCRE reference n_genome_bins must be 5000")
@@ -343,9 +345,7 @@ def load_membership(
         )
     if metadata.get("ccre_reference_file") != CCRE_REFERENCE:
         raise ValueError("membership cCRE reference file does not match the notebook contract")
-    if metadata.get("join_key") != (
-        "position -- copy_number_code[i] belongs to ccre_reference.parquet row i"
-    ):
+    if metadata.get("join_key") != "copy_number_code[i] maps to ccre_reference.parquet row i":
         raise ValueError("membership join-key metadata does not match the notebook contract")
 
     expected_order = [cn_label(level) for level in (expected_cn_order or [])]
@@ -669,11 +669,22 @@ def _window_rect(window: tuple[float, float]) -> dict:
 # ---------------------------------------------------------------------------
 # Panel 1 — Copy-number state across genome (src/panels.py:37-80)
 # ---------------------------------------------------------------------------
-def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str) -> go.Figure:
-    """Copy-number state at each cCRE across genomic coordinates."""
+def panel_1(
+    row: dict[str, object],
+    window: tuple[float, float],
+    biosample: str,
+    cn_order: list[str],
+) -> go.Figure:
+    """Copy-number state at each cCRE across genomic coordinates.
+
+    ``p1_y`` is the position in cn_order (6 stands for "6+"); Unmapped cCREs
+    have no y and are only counted in ``p1_unmapped_n``.
+    """
     x = np.asarray(row["p1_x"], dtype=float)
     y = np.asarray(row["p1_y"], dtype=float)
     p1_n = np.asarray(row["p1_n"], dtype=float)
+    levels = mapped_levels(cn_order)
+    y_label = np.asarray(levels, dtype=object)[y.astype(int)]
 
     chrom_idx = _chrom_index(x)
 
@@ -701,8 +712,11 @@ def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str)
             y=y[win_mask],
             mode="markers",
             marker=_chrom_marker(chrom_idx, win_mask, size=3, opacity=0.85),
-            customdata=p1_n[win_mask],
-            hovertemplate="position %{x}<br>copy number %{y}<br>cCREs %{customdata}<extra></extra>",
+            customdata=np.column_stack([y_label[win_mask], p1_n[win_mask]]),
+            hovertemplate=(
+                "position %{x}<br>copy number %{customdata[0]}<br>"
+                "cCREs %{customdata[1]}<extra></extra>"
+            ),
         )
     )
 
@@ -718,6 +732,7 @@ def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str)
     if window != FULL_GENOME:
         layout["shapes"].append(_window_rect(window))
 
+    layout["yaxis"].update(tickvals=list(range(len(levels))), ticktext=levels)
     layout["dragmode"] = "select"
     layout["selectdirection"] = "h"
     fig.update_layout(**layout)
@@ -817,21 +832,24 @@ def panel_2(
 # Panel 3 — cCRE count per copy-number state (src/panels.py:113-141)
 # ---------------------------------------------------------------------------
 def panel_3(row: dict[str, object], cn_order: list[str]) -> go.Figure:
-    """cCRE count per copy-number state (bar chart)."""
-    # Read counts and zip positionally against the passed cn_order (E6 fix)
-    cn_counts = list(row["cn_counts"])
-    palette = cn_colors(cn_order)
-
-    # x-values are the labelled form; customdata carries raw cn_order back
-    labels3 = [cn_label(c) for c in cn_order]
-    y = cn_counts[: len(cn_order)]  # positional, no Counter indirection
+    """cCRE count per copy-number state (bar chart), Unmapped left out."""
+    # Zip counts positionally against cn_order (E6 fix), then drop Unmapped
+    # as a pair so the remaining bars keep their own counts.
+    pairs = [
+        (cn_label(level), count)
+        for level, count in zip(cn_order, row["cn_counts"], strict=True)
+        if cn_label(level) != UNMAPPED
+    ]
+    labels3 = [label for label, _ in pairs]
+    y = [count for _, count in pairs]
+    palette = cn_colors(labels3)
 
     fig = go.Figure(
         go.Bar(
             x=labels3,
             y=y,
-            marker_color=[palette[c] for c in cn_order],
-            customdata=list(cn_order),
+            marker_color=[palette[label] for label in labels3],
+            customdata=labels3,
             text=[f"{v:,}" for v in y],
             textposition="outside",
             textfont=dict(size=10),
@@ -908,12 +926,13 @@ def panel_4(
 
     fig = go.Figure()
     seen4: set[str] = set()
+    shown = mapped_levels(cn_order)
 
     for idx, level in enumerate(cn_order):
-        if level not in active_cn:
-            continue
         label = cn_label(level)
-        i = float(idx)
+        if label == UNMAPPED or level not in active_cn:
+            continue
+        i = float(shown.index(label))
         n_val = vn[idx] if idx < len(vn) else 0
 
         # One pass per tissue emitting polygon -> IQR bar -> median marker, so
@@ -943,7 +962,9 @@ def panel_4(
             )
             seen4.add(tissue)
 
-            if quart is None or len(quart) < 3:
+            # Samples without a healthy reference publish empty outlines and
+            # null quartiles.
+            if quart is None or len(quart) < 3 or any(q is None for q in quart[:3]):
                 continue
             q25, median, q75 = float(quart[0]), float(quart[1]), float(quart[2])
             x_off = i + side * 0.07
@@ -992,9 +1013,9 @@ def panel_4(
         dragmode="pan",
         legend=dict(title="zscore_type", orientation="h", y=1.02, yanchor="bottom"),
         xaxis=dict(
-            range=[-0.6, len(cn_order) - 0.4],
-            tickvals=list(range(len(cn_order))),
-            ticktext=[cn_label(c) for c in cn_order],
+            range=[-0.6, len(shown) - 0.4],
+            tickvals=list(range(len(shown))),
+            ticktext=shown,
             title="Copy number",
             showgrid=False,
             zeroline=False,
@@ -1103,6 +1124,7 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
 __all__ = [
     "CANCER_BLUE",
     "CCRE_REFERENCE",
+    "CCRE_REFERENCE_SCHEMA_VERSION",
     "CCRE_INDEX",
     "CCRE_INDEX_DIR",
     "CCRE_INDEX_NAME",
@@ -1134,6 +1156,7 @@ __all__ = [
     "SENTINEL",
     "TABLE_COLUMNS",
     "TRACKS",
+    "UNMAPPED",
     "VIOLIN_EDGES",
     "Z_LIM",
     "assert_edges_match",
@@ -1153,6 +1176,7 @@ __all__ = [
     "load_cancer_z",
     "load_detail_index",
     "load_membership",
+    "mapped_levels",
     "load_loci",
     "load_panel",
     "grid_bin_id",

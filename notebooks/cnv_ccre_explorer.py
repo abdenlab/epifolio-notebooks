@@ -260,7 +260,17 @@ def _(np):
 
 
 @app.cell
-def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window, set_zrange):
+def _(
+    biosample,
+    clamp_window,
+    cn_order,
+    cnv,
+    get_window,
+    mo,
+    read_row,
+    set_window,
+    set_zrange,
+):
     p1_row = read_row(biosample, "1")
 
     # H4: read .ranges off the UI element, not the callback arg (value.ranges would be
@@ -273,7 +283,7 @@ def _(biosample, clamp_window, cnv, get_window, mo, read_row, set_window, set_zr
             set_zrange(None)
 
     panel1 = mo.ui.plotly(
-        cnv.panel_1(p1_row, get_window(), biosample),
+        cnv.panel_1(p1_row, get_window(), biosample, cn_order),
         on_change=sync1,
         config={"responsive": True},
     )
@@ -341,7 +351,7 @@ def _(cn_order, cnv, panel3):
     # panel3.points MUST be read outside panel3's defining cell: marimo subtracts
     # get_defining_cells() from the cells it reruns on a UI value change
     # (runtime.py:1943), so an in-cell read stays frozen at the initial value.
-    picked_cn = cnv.bar_levels(panel3.points, cn_order)
+    picked_cn = cnv.bar_levels(panel3.points, cnv.mapped_levels(cn_order))
     active_cn = picked_cn or cn_order
     return active_cn, picked_cn
 
@@ -393,30 +403,34 @@ def _(active_cn, cn_order, cnv, jscatter, p6_row):
     density = cnv.density_table_with_index(p6_row, active_cn, cn_order)
     dens_tbl, dens_inv = density.table, density.inv
 
-    scatter5 = jscatter.Scatter(
-        data=dens_tbl,  # E3: pass Arrow table directly
-        x="cancer_z",
-        y="healthy_z",
-        x_scale=cnv.Z_LIM,
-        y_scale=cnv.Z_LIM,
-        color_by="log_cCREs",  # D22/D23
-        color_map="inferno",
-        size=3,
-        opacity=0.9,
-        height=460,
-        axes_labels=["Cancer tissue ATAC z-score", "Healthy tissue ATAC z-score"],
-        tooltip=True,
-        tooltip_properties=["cancer_z", "healthy_z", "cCREs", "log_cCREs"],
-        legend=True,
-        lasso_initiator=True,
-    )
+    # jscatter cannot draw an empty table: no healthy reference, or a
+    # panel-3 pick with no cCREs.
+    scatter5 = None
+    if dens_tbl.num_rows:
+        scatter5 = jscatter.Scatter(
+            data=dens_tbl,  # E3: pass Arrow table directly
+            x="cancer_z",
+            y="healthy_z",
+            x_scale=cnv.Z_LIM,
+            y_scale=cnv.Z_LIM,
+            color_by="log_cCREs",  # D22/D23
+            color_map="inferno",
+            size=3,
+            opacity=0.9,
+            height=460,
+            axes_labels=["Cancer tissue ATAC z-score", "Healthy tissue ATAC z-score"],
+            tooltip=True,
+            tooltip_properties=["cancer_z", "healthy_z", "cCREs", "log_cCREs"],
+            legend=True,
+            lasso_initiator=True,
+        )
 
     # M2a: the raw widget, not mo.ui.anywidget. mo.ui.anywidget turns
     # jscatter's synced `hovering` trait into a reactive dependency, forcing a
     # kernel round-trip and a full remount of both scatter canvases on every
     # mouse move (cnvpostpr.md F1). Selection still reaches the kernel via
     # .observe() below, which does not go through mo.ui.anywidget at all.
-    panel5_widget = scatter5.widget
+    panel5_widget = None if scatter5 is None else scatter5.widget
 
     return dens_inv, dens_tbl, panel5_widget, scatter5
 
@@ -429,26 +443,29 @@ def _(active_cn, cn_order, cnv, jscatter, p6_row):
 
     cn_tbl6 = cnv.cn_table(p6_row, active_cn, cn_order)
 
-    scatter6 = jscatter.Scatter(
-        data=cn_tbl6,  # E3: pass Arrow table directly
-        x="cancer_z",
-        y="healthy_z",
-        x_scale=cnv.Z_LIM,
-        y_scale=cnv.Z_LIM,
-        color_by="copy_number",
-        color_map=color_map6,  # D5
-        size=3,
-        opacity=0.8,
-        height=460,
-        axes_labels=["Cancer tissue ATAC z-score", "Healthy tissue ATAC z-score"],
-        tooltip=True,
-        tooltip_properties=["cancer_z", "healthy_z", "copy_number", "cCREs"],
-        legend=True,
-        lasso_initiator=True,
-    )
+    # Same empty-table guard as panel 5.
+    scatter6 = None
+    if cn_tbl6.num_rows:
+        scatter6 = jscatter.Scatter(
+            data=cn_tbl6,  # E3: pass Arrow table directly
+            x="cancer_z",
+            y="healthy_z",
+            x_scale=cnv.Z_LIM,
+            y_scale=cnv.Z_LIM,
+            color_by="copy_number",
+            color_map=color_map6,  # D5
+            size=3,
+            opacity=0.8,
+            height=460,
+            axes_labels=["Cancer tissue ATAC z-score", "Healthy tissue ATAC z-score"],
+            tooltip=True,
+            tooltip_properties=["cancer_z", "healthy_z", "copy_number", "cCREs"],
+            legend=True,
+            lasso_initiator=True,
+        )
 
     # M2a: raw widget — see panel5_widget above
-    panel6_widget = scatter6.widget
+    panel6_widget = None if scatter6 is None else scatter6.widget
 
     return cn_tbl6, color_map6, palette6, panel6_widget, scatter6
 
@@ -490,7 +507,8 @@ def _(dens_tbl, lasso_indices, panel5_widget, selection_sync, set_membership_sel
         keys = tuple(sorted({int(value) for value in rows["bin_id"].to_pylist()}))
         set_membership_selection(("bins", keys) if keys else None)
 
-    panel5_widget.observe(sync5, names="selection")
+    if panel5_widget is not None:
+        panel5_widget.observe(sync5, names="selection")
     return (sync5,)
 
 
@@ -532,7 +550,8 @@ def _(
         )
         set_membership_selection(("points", keys) if keys else None)
 
-    panel6_widget.observe(sync6, names="selection")
+    if panel6_widget is not None:
+        panel6_widget.observe(sync6, names="selection")
     return (sync6,)
 
 
@@ -606,8 +625,8 @@ def _(bin_pos, panel5_widget, selection_active, selection_sync):
     # here. Guarded so a no-op assignment can't retrigger sync5 in a loop
     # (matching nmf_sample_explorer.py:389-392).
     _target = bin_pos.tolist() if selection_active else []
-    _current = panel5_widget.selection
-    if list([] if _current is None else _current) != _target:
+    _current = None if panel5_widget is None else panel5_widget.selection
+    if panel5_widget is not None and list([] if _current is None else _current) != _target:
         selection_sync["panel5"] = tuple(_target)
         panel5_widget.selection = _target
     return
@@ -617,8 +636,8 @@ def _(bin_pos, panel5_widget, selection_active, selection_sync):
 def _(cn6_pos, panel6_widget, selection_active, selection_sync):
     # M3c: apply the resolved selection back onto panel 6, same guard as panel 5.
     _target = cn6_pos.tolist() if selection_active else []
-    _current = panel6_widget.selection
-    if list([] if _current is None else _current) != _target:
+    _current = None if panel6_widget is None else panel6_widget.selection
+    if panel6_widget is not None and list([] if _current is None else _current) != _target:
         selection_sync["panel6"] = tuple(_target)
         panel6_widget.selection = _target
     return
@@ -721,6 +740,19 @@ def _(ccre_view):
 
 
 @app.cell
+def _(meta, mo):
+    # Drawn in place of an empty panel 5/6.
+    if meta.get("healthy_available"):
+        scatter_note = mo.md("*No cCREs at the picked copy numbers.*")
+    else:
+        scatter_note = mo.md(
+            f"*No healthy ATAC reference for this sample ({meta.get('healthy_status')}): "
+            "panels 5–6 and the healthy violins are empty.*"
+        )
+    return (scatter_note,)
+
+
+@app.cell
 def _(mo):
     # Remembers the open tab: the tabs cell re-runs (and would reset) whenever a panel changes.
     get_tab, set_tab = mo.state("Copy number")
@@ -748,6 +780,7 @@ def _(
     table1,
     table2,
     table3,
+    scatter_note,
     table4,
 ):
     sections = mo.ui.tabs(
@@ -781,7 +814,7 @@ def _(
                             mo.vstack(
                                 [
                                     mo.md(f"### 5 · Aggregated cCRE density — {biosample}"),
-                                    panel5_widget,
+                                    scatter_note if panel5_widget is None else panel5_widget,
                                 ]
                             ),
                             mo.vstack(
@@ -789,7 +822,7 @@ def _(
                                     mo.md(
                                         f"### 6 · Copy-number-stratified z-score scatter — {biosample}"
                                     ),
-                                    panel6_widget,
+                                    scatter_note if panel6_widget is None else panel6_widget,
                                 ]
                             ),
                         ],

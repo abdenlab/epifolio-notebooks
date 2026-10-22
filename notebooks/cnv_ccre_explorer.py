@@ -586,11 +586,14 @@ def _(active_cn, cn_order, cnv, jscatter, scatter_source):
 
 @app.cell
 def _(active_cn, cn_order, cnv, jscatter, scatter_source):
-    # D5: add color_map with correct palette hexes
+    # One fixed colour per copy-number level (copy_number_color_map.json).
     palette6 = cnv.cn_colors(cn_order)
-    color_map6 = {cnv.cn_label(c): hex_val for c, hex_val in palette6.items()}
 
     cn_tbl6 = cnv.cn_table(scatter_source, active_cn, cn_order)
+    # jscatter codes only the levels present, in sorted order, and misaligns a
+    # dict map against those codes, so colours shifted from sample to sample.
+    # A list in that same order pins every level to its own colour.
+    color_map6 = [palette6[level] for level in sorted(set(cn_tbl6["copy_number"].to_pylist()))]
 
     # Same empty-table guard as panel 5.
     scatter6 = None

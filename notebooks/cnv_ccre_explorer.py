@@ -186,7 +186,7 @@ def _(aliquot_dd):
 
 @app.cell
 def _(mo):
-    hide_sentinel = mo.ui.switch(value=False, label="Hide −10 (no ATAC signal)")
+    hide_sentinel = mo.ui.switch(value=False, label="Hide no ATAC-seq signal")
     return (hide_sentinel,)
 
 
@@ -970,23 +970,17 @@ def _(read_ccre_frame):
 
 
 @app.cell
-def _(ccre_view, get_table_source, table1, table2, table3, table4):
-    # The last selection's table, under the tab strip and kept across tabs.
-    # Kept out of the tabs cell so a selection redraws only this table, never
-    # the panels (a re-run there remounts the panel 5/6 WebGL canvases blank).
+def _(get_table_source, table1, table2, table3, table4):
+    # The last selection's table, under the tab strip and kept across tabs;
+    # nothing until a first selection. Kept out of the tabs cell so a
+    # selection redraws only this table, never the panels (a re-run there
+    # remounts the panel 5/6 WebGL canvases blank).
     {
         "panel 1": table1,
         "panel 2": table2,
         "panel 3": table3,
         "panel 5/6": table4,
-    }.get(
-        get_table_source(),
-        ccre_view(
-            None,
-            "Select cCREs to list them here: brush panel 1, box-select panel 2, "
-            "click bars in panel 3, or lasso panel 5 or 6.",
-        ),
-    )
+    }.get(get_table_source())
     return
 
 

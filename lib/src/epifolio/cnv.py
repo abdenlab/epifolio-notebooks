@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+import re
+import urllib.request
 from dataclasses import dataclass
 from importlib.metadata import files
 from itertools import accumulate
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -28,20 +31,58 @@ from epifolio.colors import load_color_map
 # ---------------------------------------------------------------------------
 # Payload schema and metadata contract
 # ---------------------------------------------------------------------------
-SCHEMA_VERSION = "3"
-N_VIOLIN_BINS = 256
-N_GRID = 192
-Z_LIM = (-10.5, 5.5)
+SCHEMA_VERSION = "5"
+N_VIOLIN_BINS = 464
+N_GRID = 348
+Z_LIM = (-18.0, 11.0)
+# Missing-ATAC marker kept in every v4 histogram (file metadata sentinel_value).
+SENTINEL = -10.0
 
 VIOLIN_EDGES = np.linspace(Z_LIM[0], Z_LIM[1], N_VIOLIN_BINS + 1).tolist()
 GRID_EDGES = np.linspace(Z_LIM[0], Z_LIM[1], N_GRID + 1).tolist()
+# Panel 5/6 cell centres exactly as the writer publishes them: float32 bin
+# midpoints, stored as float64.
+GRID_CENTERS = (
+    ((np.asarray(GRID_EDGES[:-1]) + np.asarray(GRID_EDGES[1:])) / 2).astype(np.float32).astype(np.float64)
+)
+VIOLIN_CENTERS = (np.asarray(VIOLIN_EDGES[:-1]) + np.asarray(VIOLIN_EDGES[1:])) / 2
+# Half-width of the widest bin in each published violin outline.
+VIOLIN_HALF_WIDTH = 0.44
 HIST2D_SHAPE = [N_GRID, N_GRID]
 
 TRACKS = "summary_genome_tracks.parquet"
 DISTRIBUTIONS = "summary_signal_distributions.parquet"
 CCRE_REFERENCE = "ccre_reference.parquet"
 MEMBERSHIP = "summary_ccre_membership.parquet"
-MEMBERSHIP_SCHEMA_VERSION = "1"
+MEMBERSHIP_SCHEMA_VERSION = "2"
+CCRE_REFERENCE_SCHEMA_VERSION = "1"
+# cn_order level for cCREs outside every ASCAT segment; panels 3-4 leave it out.
+UNMAPPED = "Unmapped"
+# Every ENCODE cCRE accession in the locus table: this prefix and 7 digits.
+CCRE_PREFIX = "EH38E"
+DETAIL = "atac_zscore_detail.parquet"
+DETAIL_MANIFEST = "detail_manifest.json"
+DETAIL_SCHEMA_VERSION = "2"
+# Panel 2 switches from the binned overview to raw per-cCRE z-scores once the
+# window covers at most this many cCREs (chr1, the largest, is ~204k).
+DETAIL_MAX_ROWS = 250_000
+# Adjacent overview x bins merged into one point when panel 2 shows the whole
+# genome (~4.7k bins on a plot ~1.5k px wide).
+OVERVIEW_MERGE = 3
+# Columns shown in every per-tab cCRE table. rDHS is the join key between
+# the locus table and the membership artifact and is never displayed.
+TABLE_COLUMNS = [
+    "cCRE",
+    "chrom",
+    "start",
+    "end",
+    "class",
+    "copy_number",
+    "copy_number_code",
+    "x_bin",
+    "cancer_z",
+    "healthy_z",
+]
 
 
 def cols_for(tags: Mapping[str, str], *panels: str) -> list[str]:
@@ -69,8 +110,8 @@ def assert_edges_match(metadata: Mapping[str, str | bytes]) -> None:
     constants = file_constants(metadata)
     if constants["schema_version"] != SCHEMA_VERSION:
         raise ValueError(
-            f"CNV payload schema_version={constants['schema_version']!r}; "
-            f"expected {SCHEMA_VERSION!r}"
+            f"CNV data is schema {constants['schema_version']}, this notebook needs "
+            f"schema {SCHEMA_VERSION}."
         )
     checks = {
         "violin_edges": VIOLIN_EDGES,
@@ -79,8 +120,13 @@ def assert_edges_match(metadata: Mapping[str, str | bytes]) -> None:
     }
     for key, expected in checks.items():
         got = constants[key]
-        if not np.allclose(got, expected):
+        if np.shape(got) != np.shape(expected) or not np.allclose(got, expected):
             raise ValueError(f"CNV payload {key} does not match the notebook contract")
+    sentinel = metadata.get("sentinel_value")
+    if isinstance(sentinel, bytes):
+        sentinel = sentinel.decode()
+    if sentinel is None or float(sentinel) != SENTINEL:
+        raise ValueError(f"CNV payload sentinel_value={sentinel!r}; expected {SENTINEL!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -125,18 +171,17 @@ HEALTHY_ORANGE = "#f58518"
 
 
 def cn_label(level: object) -> str:
-    """Normalize copy-number level labels across payload panels."""
-    text = str(level)
-    if text in {"4+", "Missing"}:
-        return text
-    try:
-        return f"{float(text):.1f}"
-    except ValueError:
-        return text
+    """Copy-number label; schema 5 publishes cn_order strings exactly everywhere."""
+    return str(level)
+
+
+def mapped_levels(cn_order: Iterable[object]) -> list[str]:
+    """cn_order without UNMAPPED: the levels panels 1, 3 and 4 draw."""
+    return [cn_label(level) for level in cn_order if cn_label(level) != UNMAPPED]
 
 
 def grid_bin_id(x: Iterable[float], y: Iterable[float]) -> np.ndarray:
-    """Return stable row/bin IDs for the published 192x192 grid centers."""
+    """Return stable row/bin IDs for the published N_GRID x N_GRID grid centers."""
     x_array = np.asarray(list(x), dtype=float)
     y_array = np.asarray(list(y), dtype=float)
     x_idx = np.searchsorted(GRID_EDGES, x_array, side="right") - 1
@@ -159,8 +204,10 @@ def cn_colors(levels: Iterable[object]) -> dict[str, str]:
 # Payload discovery and panel reads
 # ---------------------------------------------------------------------------
 DATA_DIR = ASSETS / "data" / "cnv_ccre"
-# Canonical mirror.
-REMOTE = "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
+# Canonical mirror; EPIFOLIO_CNV_REMOTE points a session at another mirror URL.
+REMOTE = os.environ.get(
+    "EPIFOLIO_CNV_REMOTE", "https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre"
+)
 
 # cCRE locus table (chrom/start/end/rDHS/cCRE/class), shared across every
 # *.ccre.pq embedding file and row-count-identical to the CNV payload's
@@ -248,10 +295,10 @@ def load_ccre_reference(src: str | None = None) -> pl.DataFrame:
     src = src or ccre_reference_source()
     try:
         metadata = read_metadata(src)
-        if metadata.get("schema_version") != MEMBERSHIP_SCHEMA_VERSION:
+        if metadata.get("schema_version") != CCRE_REFERENCE_SCHEMA_VERSION:
             raise ValueError(
                 f"cCRE reference schema_version={metadata.get('schema_version')!r}; "
-                f"expected {MEMBERSHIP_SCHEMA_VERSION!r}"
+                f"expected {CCRE_REFERENCE_SCHEMA_VERSION!r}"
             )
         if str(metadata.get("n_genome_bins")) != "5000":
             raise ValueError("cCRE reference n_genome_bins must be 5000")
@@ -313,9 +360,7 @@ def load_membership(
         )
     if metadata.get("ccre_reference_file") != CCRE_REFERENCE:
         raise ValueError("membership cCRE reference file does not match the notebook contract")
-    if metadata.get("join_key") != (
-        "position -- copy_number_code[i] belongs to ccre_reference.parquet row i"
-    ):
+    if metadata.get("join_key") != "copy_number_code[i] maps to ccre_reference.parquet row i":
         raise ValueError("membership join-key metadata does not match the notebook contract")
 
     expected_order = [cn_label(level) for level in (expected_cn_order or [])]
@@ -343,22 +388,21 @@ def load_membership(
     if frame.height != 1:
         raise KeyError(f"membership artifact has {frame.height} rows for biosample {biosample!r}; expected 1")
 
-    copy_number_code = list(frame.row(0, named=True)["copy_number_code"])
+    codes = np.asarray(frame["copy_number_code"][0].to_numpy(), dtype=np.int64)
     n_ccre = reference.height
     if expected_n_ccre is not None and n_ccre != expected_n_ccre:
         raise ValueError(f"cCRE reference n_ccre={n_ccre}; expected {expected_n_ccre}")
-    if len(copy_number_code) != n_ccre:
+    if len(codes) != n_ccre:
         raise ValueError(
-            f"membership copy_number_code length={len(copy_number_code)}; expected {n_ccre}"
+            f"membership copy_number_code length={len(codes)}; expected {n_ccre}"
         )
 
-    codes = np.asarray(copy_number_code, dtype=np.int64)
     if np.any((codes < 0) | (codes >= len(declared))):
         raise ValueError("membership copy_number_code contains an unknown code")
 
     return reference.with_columns(
         pl.Series("copy_number_code", codes, dtype=pl.UInt8),
-        pl.Series("copy_number", [declared[int(code)] for code in codes]),
+        pl.Series("copy_number", declared, dtype=pl.String).gather(codes),
     )
 
 
@@ -451,6 +495,134 @@ def load_panel(dataset: Dataset, biosample: str, *panels: str) -> dict[str, obje
 
 
 # ---------------------------------------------------------------------------
+# Detail tier: raw per-cCRE cancer and healthy z-scores
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class DetailIndex:
+    """The detail manifest reduced to the biosample -> column maps.
+
+    The detail parquet is wide: one float32 cancer column per biosample
+    (``sNNNN``) and one healthy column per ENCODE reference (``h_ENCSR…``),
+    with rows in genome order and ``reference_index`` pointing at the
+    ccre_reference.parquet row each value belongs to. ``healthy`` maps a
+    biosample to None when it has no healthy reference.
+    """
+
+    src: str
+    columns: dict[str, str]
+    healthy: dict[str, str | None]
+
+
+def _read_text(src: str) -> str:
+    local = Path(src)
+    if local.exists():
+        return local.read_text()
+    with urllib.request.urlopen(src) as response:
+        return response.read().decode()
+
+
+def load_detail_index(
+    overview_metadata: Mapping[str, str | bytes],
+    src: str | None = None,
+    manifest_src: str | None = None,
+) -> DetailIndex:
+    """Load the detail manifest and check it was built from this overview payload."""
+    src = src or source(DETAIL)
+    manifest = json.loads(_read_text(manifest_src or source(DETAIL_MANIFEST)))
+    contract = manifest["contract"]
+    if contract["detail_schema_version"] != DETAIL_SCHEMA_VERSION:
+        raise ValueError(
+            f"detail_schema_version={contract['detail_schema_version']!r}; "
+            f"expected {DETAIL_SCHEMA_VERSION!r}"
+        )
+    if contract["chromosomes"] != CHROMS:
+        raise ValueError("detail chromosome order does not match the notebook contract")
+    overview_build = overview_metadata.get("build_id")
+    if isinstance(overview_build, bytes):
+        overview_build = overview_build.decode()
+    if contract["overview_build_id"] != overview_build:
+        raise ValueError("detail tier was built against a different overview payload")
+    if read_metadata(src).get("detail_build_id") != manifest["build_id"]:
+        raise ValueError("detail parquet does not match its manifest")
+
+    samples = contract["samples"]
+    return DetailIndex(
+        src=src,
+        columns={sample["biosample"]: sample["column"] for sample in samples},
+        healthy={sample["biosample"]: sample["healthy_column"] for sample in samples},
+    )
+
+
+def _grid_index(z: np.ndarray) -> np.ndarray:
+    """Grid bin of each raw z-score: left-closed bins, the last one right-closed."""
+    idx = np.searchsorted(GRID_EDGES, z, side="right") - 1
+    return np.where(z == GRID_EDGES[-1], N_GRID - 1, idx)
+
+
+def load_coords(index: DetailIndex) -> pl.DataFrame:
+    """The detail rows' ``reference_index`` and genome-linear ``pos``.
+
+    The same for every biosample, so read once per session. ``pos`` anchors
+    each point at the cCRE start, as in load_loci.
+    """
+    return (
+        pl.scan_parquet(index.src)
+        .select(
+            "reference_index",
+            (
+                pl.col("chrom").replace_strict(CHROM_OFFSET, return_dtype=pl.Int64)
+                + pl.col("start")
+            ).alias("pos"),
+        )
+        .collect()
+    )
+
+
+def load_detail_column(index: DetailIndex, column: str) -> pl.Series:
+    """One float32 detail column, cancer (``sNNNN``) or healthy (``h_ENCSR…``)."""
+    return pl.scan_parquet(index.src).select(column).collect().to_series()
+
+
+def zscore_frame(
+    coords: pl.DataFrame, cancer: pl.Series, healthy: pl.Series | None
+) -> pl.DataFrame:
+    """Whole-genome cancer and healthy z-scores for one biosample, in genome order.
+
+    Columns from one detail file share its row order, so ``coords`` and the
+    value columns line up by position. Returns ``reference_index``, ``pos``,
+    ``cancer_z``, ``healthy_z`` and ``bin_id``, the cCRE's panel 5/6 grid cell
+    in the grid_bin_id convention. The healthy columns and ``bin_id`` are null
+    without a healthy reference. Windows are filtered from this frame, never
+    re-read.
+    """
+    frame = coords.with_columns(
+        cancer.alias("cancer_z"),
+        (pl.lit(None, dtype=pl.Float32) if healthy is None else healthy).alias("healthy_z"),
+    )
+    if healthy is None:
+        return frame.with_columns(bin_id=pl.lit(None, dtype=pl.Int64))
+    # Same binning the writer used for scatter_cn_*; float64 edges on the
+    # float32 values reproduce the published panel 6 counts exactly.
+    cancer_idx = _grid_index(frame["cancer_z"].to_numpy().astype(np.float64))
+    healthy_idx = _grid_index(frame["healthy_z"].to_numpy().astype(np.float64))
+    return frame.with_columns(
+        bin_id=pl.when(pl.col("healthy_z").is_not_null()).then(
+            pl.Series(healthy_idx * N_GRID + cancer_idx, dtype=pl.Int64)
+        )
+    )
+
+
+def load_zscores(index: DetailIndex, biosample: str) -> pl.DataFrame:
+    """zscore_frame for one biosample in a single call (coordinates re-read)."""
+    healthy = index.healthy[biosample]
+    return zscore_frame(
+        load_coords(index),
+        load_detail_column(index, index.columns[biosample]),
+        None if healthy is None else load_detail_column(index, healthy),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Chromosome tick positions and dashed divider shapes (src/panels.py:11-17)
 # ---------------------------------------------------------------------------
 CHROM_TICKVALS = [CHROM_OFFSET[c] + CHROM_SIZES[c] // 2 for c in CHROMS]
@@ -480,12 +652,14 @@ BASE_LAYOUT = dict(
 )
 
 _DARK24 = px.colors.qualitative.Dark24
+_CHROM_STARTS = np.asarray([CHROM_OFFSET[chrom] for chrom in CHROMS], dtype=float)
 
 # Chromosome colours as a discrete colorscale rather than a per-point hex string
 # array. Plotly's validator spends ~10 s on a 258k-element string array and ~0.1 s
-# on the equivalent float array, so panels 1 and 2 send integer chromosome indices
-# plus this scale. Paired stops keep each band flat instead of interpolating, and
-# cmin/cmax must be pinned on every trace so masked traces agree on the mapping.
+# on the equivalent float array, so panel 1 sends integer chromosome indices
+# plus this scale (panel 2 draws one single-colour trace per chromosome).
+# Paired stops keep each band flat instead of interpolating, and cmin/cmax must
+# be pinned on every trace so masked traces agree on the mapping.
 # This is the one deliberate departure from src/panels.py:46, :92.
 _N_CHROM = len(CHROMS)
 _CHROM_SCALE = [
@@ -507,6 +681,60 @@ def _chrom_marker(chrom_idx, mask, size: int, opacity: float) -> dict:
         showscale=False,
         opacity=opacity,
     )
+
+
+def _chrom_traces(
+    x: np.ndarray,
+    y: np.ndarray,
+    mask: np.ndarray,
+    customdata: np.ndarray,
+    hover: str,
+    *,
+    size: int,
+    opacity: float,
+    x_dtype: type = np.float64,
+) -> list[go.Scattergl]:
+    """One Scattergl per chromosome under ``mask``, coloured as in panel 1.
+
+    A trace per chromosome lets the hover name its chromosome without a
+    string per point: ``{chrom}`` in ``hover`` becomes the chromosome name.
+    ``y`` is sent as float32 and ``x`` as ``x_dtype``: float32 is exact
+    enough for binned centres, not for per-cCRE positions.
+    """
+    chrom_idx = _chrom_index(x).astype(int)
+    traces = []
+    for i in np.unique(chrom_idx[mask]):
+        keep = mask & (chrom_idx == i)
+        traces.append(
+            go.Scattergl(
+                x=x[keep].astype(x_dtype),
+                y=y[keep].astype(np.float32),
+                mode="markers",
+                marker=dict(size=size, color=_DARK24[i % len(_DARK24)], opacity=opacity),
+                customdata=customdata[keep],
+                hovertemplate=hover.replace("{chrom}", CHROMS[i]),
+                name=CHROMS[i],
+            )
+        )
+    return traces
+
+
+def _coarsen_overview(
+    x: np.ndarray, y: np.ndarray, n: np.ndarray, factor: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Merge every ``factor`` adjacent overview x bins within a chromosome.
+
+    Counts add up per (merged bin, z bin), so the total is unchanged; a
+    merged bin sits at the mean of its bins' centres.
+    """
+    ux, xi = np.unique(x, return_inverse=True)
+    chrom = _chrom_index(ux).astype(np.int64)
+    rank = np.arange(len(ux)) - np.searchsorted(chrom, chrom)
+    group = np.unique(chrom * len(ux) + rank // factor, return_inverse=True)[1]
+    centre = np.bincount(group, weights=ux) / np.bincount(group)
+    uy, yi = np.unique(y, return_inverse=True)
+    key, inv = np.unique(group[xi] * len(uy) + yi, return_inverse=True)
+    return centre[key // len(uy)], uy[key % len(uy)], np.bincount(inv, weights=n)
 
 
 def _chrom_index(x: np.ndarray) -> np.ndarray:
@@ -566,11 +794,22 @@ def _window_rect(window: tuple[float, float]) -> dict:
 # ---------------------------------------------------------------------------
 # Panel 1 — Copy-number state across genome (src/panels.py:37-80)
 # ---------------------------------------------------------------------------
-def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str) -> go.Figure:
-    """Copy-number state at each cCRE across genomic coordinates."""
+def panel_1(
+    row: dict[str, object],
+    window: tuple[float, float],
+    biosample: str,
+    cn_order: list[str],
+) -> go.Figure:
+    """Copy-number state at each cCRE across genomic coordinates.
+
+    ``p1_y`` is the position in cn_order (6 stands for "6+"); Unmapped cCREs
+    have no y and are only counted in ``p1_unmapped_n``.
+    """
     x = np.asarray(row["p1_x"], dtype=float)
     y = np.asarray(row["p1_y"], dtype=float)
     p1_n = np.asarray(row["p1_n"], dtype=float)
+    levels = mapped_levels(cn_order)
+    y_label = np.asarray(levels, dtype=object)[y.astype(int)]
 
     chrom_idx = _chrom_index(x)
 
@@ -598,8 +837,11 @@ def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str)
             y=y[win_mask],
             mode="markers",
             marker=_chrom_marker(chrom_idx, win_mask, size=3, opacity=0.85),
-            customdata=p1_n[win_mask],
-            hovertemplate="position %{x}<br>copy number %{y}<br>cCREs %{customdata}<extra></extra>",
+            customdata=np.column_stack([y_label[win_mask], p1_n[win_mask]]),
+            hovertemplate=(
+                "position %{x}<br>copy number %{customdata[0]}<br>"
+                "cCREs %{customdata[1]}<extra></extra>"
+            ),
         )
     )
 
@@ -615,6 +857,7 @@ def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str)
     if window != FULL_GENOME:
         layout["shapes"].append(_window_rect(window))
 
+    layout["yaxis"].update(tickvals=list(range(len(levels))), ticktext=levels)
     layout["dragmode"] = "select"
     layout["selectdirection"] = "h"
     fig.update_layout(**layout)
@@ -624,34 +867,190 @@ def panel_1(row: dict[str, object], window: tuple[float, float], biosample: str)
 # ---------------------------------------------------------------------------
 # Panel 2 — ATAC z-score track (src/panels.py:82-111)
 # ---------------------------------------------------------------------------
-def panel_2(row: dict[str, object], window: tuple[float, float], biosample: str) -> go.Figure:
-    """ATAC signal track across genome position."""
-    x = np.asarray(row["p2_x"], dtype=float)
-    y = np.asarray(row["p2_y"], dtype=float)
-    p2_n = np.asarray(row["p2_n"], dtype=float)
+def sentinel_mask(y: np.ndarray, binned: bool) -> np.ndarray:
+    """True where a panel-2 value is the -10 sentinel.
 
-    # Same chromosome cycle as panel 1
-    chrom_idx = _chrom_index(x)
+    Binned overview values are grid-bin centres, so the whole bin holding
+    SENTINEL is masked; that bin also holds the few genuine values in
+    [-10, -10 + bin width), at most 6 per biosample in the v4 build.
+    """
+    if not binned:
+        return y == SENTINEL
+    bin_of = np.searchsorted(GRID_EDGES, y, side="right") - 1
+    return bin_of == np.searchsorted(GRID_EDGES, SENTINEL, side="right") - 1
+
+
+_PATH_POINT = re.compile(r"[ML]\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)")
+
+
+def selection_region(selection: Mapping[str, object]) -> dict[str, object] | None:
+    """Extent and lasso outline of a plotly selection, or None for no selection.
+
+    A box arrives as ``range``; a lasso has no range, only its outline as the
+    last ``selections`` entry (an SVG path in data coordinates). Returns
+    ``x`` and ``y`` as (lo, hi) and ``lasso`` as (xs, ys), None for a box.
+    """
+    box = selection.get("range")
+    if isinstance(box, Mapping) and box.get("x"):
+        y = box.get("y")
+        return {
+            "x": (float(min(box["x"])), float(max(box["x"]))),
+            "y": (float(min(y)), float(max(y))) if y else None,
+            "lasso": None,
+        }
+    shapes = selection.get("selections") or []
+    if not shapes:
+        return None
+    shape = shapes[-1]
+    if shape.get("type") == "rect":
+        xs = [float(shape["x0"]), float(shape["x1"])]
+        ys = [float(shape["y0"]), float(shape["y1"])]
+        lasso = None
+    else:
+        pairs = _PATH_POINT.findall(str(shape.get("path", "")))
+        if len(pairs) < 3:
+            return None
+        xs = [float(x) for x, _ in pairs]
+        ys = [float(y) for _, y in pairs]
+        lasso = (xs, ys)
+    return {"x": (min(xs), max(xs)), "y": (min(ys), max(ys)), "lasso": lasso}
+
+
+def in_polygon(
+    x: np.ndarray, y: np.ndarray, polygon_x: Sequence[float], polygon_y: Sequence[float]
+) -> np.ndarray:
+    """True where (x, y) falls inside the polygon (even-odd ray casting)."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    inside = np.zeros(len(x), dtype=bool)
+    j = len(polygon_x) - 1
+    for i in range(len(polygon_x)):
+        xi, yi, xj, yj = polygon_x[i], polygon_y[i], polygon_x[j], polygon_y[j]
+        if yi != yj:
+            crosses = (yi > y) != (yj > y)
+            inside ^= crosses & (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+        j = i
+    return inside
+
+
+def drop_sentinel(frame: pl.DataFrame, columns: Iterable[str] = ("cancer_z",)) -> pl.DataFrame:
+    """Rows where none of ``columns`` holds the -10 sentinel; nulls are kept.
+
+    Columns the frame lacks (no detail tier) are skipped.
+    """
+    present = [name for name in columns if name in frame.columns]
+    if not present:
+        return frame
+    return frame.filter(pl.all_horizontal(pl.col(name).ne_missing(SENTINEL) for name in present))
+
+
+def panel_2(
+    row: dict[str, object],
+    window: tuple[float, float],
+    biosample: str,
+    *,
+    hide_sentinel: bool = False,
+    detail: pl.DataFrame | None = None,
+    zrange: tuple[float, float] | None = None,
+    lasso: tuple[Sequence[float], Sequence[float]] | None = None,
+) -> go.Figure:
+    """ATAC signal track across genome position.
+
+    ``detail`` (per-cCRE rows inside the window, with ``pos`` and
+    ``cancer_z``) replaces the binned overview with raw values when the
+    window is narrow enough; with the locus columns ``cCRE``/``start``/``end``
+    the hover names each cCRE and its interval. ``zrange`` is the z-score
+    band of the last box selection, drawn as a highlight; ``lasso`` the
+    outline of the last lasso, drawn in its place.
+    """
+    if detail is None:
+        x = np.asarray(row["p2_x"], dtype=float)
+        y = np.asarray(row["p2_y"], dtype=float)
+        n = np.asarray(row["p2_n"], dtype=float)
+        if window == FULL_GENOME:
+            x, y, n = _coarsen_overview(x, y, n, OVERVIEW_MERGE)
+        local_mb = (x - _CHROM_STARTS[_chrom_index(x).astype(int)]) / 1e6
+        customdata = np.column_stack([n, local_mb]).astype(np.float32)
+        hover = (
+            "{chrom} ~%{customdata[1]:.1f} Mb<br>z-score %{y:.2f}<br>"
+            "cCREs %{customdata[0]:,}<extra></extra>"
+        )
+        tier = ""
+    else:
+        x = detail["pos"].to_numpy().astype(float)
+        y = detail["cancer_z"].to_numpy().astype(float)
+        if {"cCRE", "start", "end"} <= set(detail.columns) and (
+            detail["cCRE"].str.contains(f"^{CCRE_PREFIX}[0-9]{{7}}$").all()
+        ):
+            # Accession digits, not strings: a string per point triples the payload.
+            customdata = np.column_stack(
+                [
+                    detail["cCRE"].str.slice(len(CCRE_PREFIX)).cast(pl.Int32).to_numpy(),
+                    detail["start"].to_numpy(),
+                    detail["end"].to_numpy(),
+                ]
+            ).astype(np.int32)
+            hover = (
+                f"cCRE {CCRE_PREFIX}%{{customdata[0]:07d}}<br>"
+                "{chrom}:%{customdata[1]:,}–%{customdata[2]:,}<br>"
+                "z-score %{y:.3f}<extra></extra>"
+            )
+        else:
+            customdata = (x - _CHROM_STARTS[_chrom_index(x).astype(int)]).astype(np.int32)[:, None]
+            hover = "{chrom}:%{customdata[0]:,}<br>z-score %{y:.3f}<extra></extra>"
+        tier = f" · per-cCRE detail ({len(y):,})"
 
     win_mask = (x >= window[0]) & (x <= window[1])
+    if hide_sentinel:
+        win_mask &= ~sentinel_mask(y, binned=detail is None)
 
     fig = go.Figure(
-        go.Scattergl(
-            x=x[win_mask],
-            y=y[win_mask],
-            mode="markers",
-            marker=_chrom_marker(chrom_idx, win_mask, size=3, opacity=0.8),
-            customdata=p2_n[win_mask],
-            hovertemplate="position %{x}<br>z-score %{y:.2f}<br>cCREs %{customdata}<extra></extra>",
+        _chrom_traces(
+            x,
+            y,
+            win_mask,
+            customdata,
+            hover,
+            size=3,
+            opacity=0.8,
+            x_dtype=np.float32 if detail is None else np.float64,
         )
     )
     layout = genome_layout(
-        f"2 · ATAC signal at each cCRE across genomic coordinates — {biosample}",
+        f"2 · ATAC signal at each cCRE across genomic coordinates — {biosample}{tier}",
         "ATAC z-score (500 kb median)",
         window,
     )
+    if lasso is not None:
+        layout["shapes"].append(
+            dict(
+                type="path",
+                xref="x",
+                yref="y",
+                path="M" + "L".join(f"{px},{py}" for px, py in zip(*lasso)) + "Z",
+                fillcolor="rgba(76,120,168,0.13)",
+                line=dict(width=1, color="rgba(76,120,168,0.6)"),
+                layer="below",
+            )
+        )
+    elif zrange is not None:
+        layout["shapes"].append(
+            dict(
+                type="rect",
+                xref="paper",
+                yref="y",
+                x0=0,
+                x1=1,
+                y0=zrange[0],
+                y1=zrange[1],
+                fillcolor="rgba(76,120,168,0.13)",
+                line=dict(width=0),
+                layer="below",
+            )
+        )
+    # A 2-D box: x narrows the genomic window, y picks a z-score band.
     layout["dragmode"] = "select"
-    layout["selectdirection"] = "h"
+    layout["selectdirection"] = "any"
     fig.update_layout(**layout)
     return fig
 
@@ -659,22 +1058,36 @@ def panel_2(row: dict[str, object], window: tuple[float, float], biosample: str)
 # ---------------------------------------------------------------------------
 # Panel 3 — cCRE count per copy-number state (src/panels.py:113-141)
 # ---------------------------------------------------------------------------
-def panel_3(row: dict[str, object], cn_order: list[str]) -> go.Figure:
-    """cCRE count per copy-number state (bar chart)."""
-    # Read counts and zip positionally against the passed cn_order (E6 fix)
-    cn_counts = list(row["cn_counts"])
-    palette = cn_colors(cn_order)
+def panel_3(
+    row: dict[str, object],
+    cn_order: list[str],
+    sentinel_n: Iterable[int] | None = None,
+) -> go.Figure:
+    """cCRE count per copy-number state (bar chart), Unmapped left out.
 
-    # x-values are the labelled form; customdata carries raw cn_order back
-    labels3 = [cn_label(c) for c in cn_order]
-    y = cn_counts[: len(cn_order)]  # positional, no Counter indirection
+    ``sentinel_n`` (the published ``violin_cancer_sentinel_n``) is subtracted
+    per level to leave out cCREs whose cancer z-score is the -10 sentinel.
+    """
+    counts = list(row["cn_counts"])
+    if sentinel_n is not None:
+        counts = [count - n for count, n in zip(counts, sentinel_n, strict=True)]
+    # Zip counts positionally against cn_order (E6 fix), then drop Unmapped
+    # as a pair so the remaining bars keep their own counts.
+    pairs = [
+        (cn_label(level), count)
+        for level, count in zip(cn_order, counts, strict=True)
+        if cn_label(level) != UNMAPPED
+    ]
+    labels3 = [label for label, _ in pairs]
+    y = [count for _, count in pairs]
+    palette = cn_colors(labels3)
 
     fig = go.Figure(
         go.Bar(
             x=labels3,
             y=y,
-            marker_color=[palette[c] for c in cn_order],
-            customdata=list(cn_order),
+            marker_color=[palette[label] for label in labels3],
+            customdata=labels3,
             text=[f"{v:,}" for v in y],
             textposition="outside",
             textfont=dict(size=10),
@@ -748,24 +1161,24 @@ def panel_4(
     qc = list(row["violin_q_cancer"])
     qh = list(row["violin_q_healthy"])
     vn = list(row["violin_n"])
+    vn_healthy = list(row.get("violin_healthy_n", vn))
 
     fig = go.Figure()
     seen4: set[str] = set()
+    shown = mapped_levels(cn_order)
 
     for idx, level in enumerate(cn_order):
-        if level not in active_cn:
-            continue
         label = cn_label(level)
-        i = float(idx)
-        n_val = vn[idx] if idx < len(vn) else 0
-
+        if label == UNMAPPED or level not in active_cn:
+            continue
+        i = float(shown.index(label))
         # One pass per tissue emitting polygon -> IQR bar -> median marker, so
         # trace order matches src/panels.py:155-200 exactly.
-        for vx, vy, quart, tissue, colour, side in (
+        for vx, vy, quart, n_val, tissue, colour, side in (
             (vc_x[idx], vc_y[idx], qc[idx] if idx < len(qc) else None,
-             "Cancer tissue", CANCER_BLUE, -1.0),
+             vn[idx] if idx < len(vn) else 0, "Cancer tissue", CANCER_BLUE, -1.0),
             (vh_x[idx], vh_y[idx], qh[idx] if idx < len(qh) else None,
-             "Healthy tissue", HEALTHY_ORANGE, 1.0),
+             vn_healthy[idx] if idx < len(vn_healthy) else 0, "Healthy tissue", HEALTHY_ORANGE, 1.0),
         ):
             # Violin polygon (src/panels.py:161-176)
             fig.add_trace(
@@ -786,7 +1199,9 @@ def panel_4(
             )
             seen4.add(tissue)
 
-            if quart is None or len(quart) < 3:
+            # Samples without a healthy reference publish empty outlines and
+            # null quartiles.
+            if quart is None or len(quart) < 3 or any(q is None for q in quart[:3]):
                 continue
             q25, median, q75 = float(quart[0]), float(quart[1]), float(quart[2])
             x_off = i + side * 0.07
@@ -835,9 +1250,9 @@ def panel_4(
         dragmode="pan",
         legend=dict(title="zscore_type", orientation="h", y=1.02, yanchor="bottom"),
         xaxis=dict(
-            range=[-0.6, len(cn_order) - 0.4],
-            tickvals=list(range(len(cn_order))),
-            ticktext=[cn_label(c) for c in cn_order],
+            range=[-0.6, len(shown) - 0.4],
+            tickvals=list(range(len(shown))),
+            ticktext=shown,
             title="Copy number",
             showgrid=False,
             zeroline=False,
@@ -845,6 +1260,64 @@ def panel_4(
         yaxis=dict(title="Score", range=list(Z_LIM)),
     )
     return fig
+
+
+def violin_outline(counts: np.ndarray, position: float, side: float) -> tuple[list[float], list[float]]:
+    """The writer's half-violin outline for one histogram over VIOLIN_EDGES.
+
+    Width grows with the bin count up to VIOLIN_HALF_WIDTH at the widest bin,
+    on ``side`` (-1 cancer, +1 healthy) of ``position``, closed along it. An
+    empty level gets a zero-width outline, as published.
+    """
+    counts = np.asarray(counts, dtype=float)
+    if not len(counts):
+        return [], []
+    peak = counts.max()
+    width = counts / peak if peak > 0 else np.zeros_like(counts)
+    x = np.concatenate(
+        [position + side * VIOLIN_HALF_WIDTH * width, np.full(len(counts), float(position))]
+    )
+    y = np.concatenate([VIOLIN_CENTERS, VIOLIN_CENTERS[::-1]])
+    return x.tolist(), y.tolist()
+
+
+def drop_sentinel_violins(
+    row: dict[str, object], frame: pl.DataFrame, cn_order: list[str]
+) -> dict[str, object]:
+    """Panel 4 row with the -10 sentinels taken out of every violin.
+
+    Each level's published sentinel count leaves the histogram bin holding
+    SENTINEL, the outline is redrawn by violin_outline, and the quartiles are
+    recomputed from ``frame`` (per-cCRE ``copy_number``, ``cancer_z``,
+    ``healthy_z``) under the published quantile policy, numpy's linear
+    percentile. A tissue with no published values (no healthy reference)
+    keeps its published, empty violins.
+    """
+    sentinel_bin = int(np.searchsorted(VIOLIN_EDGES, SENTINEL, side="right") - 1)
+    by_level = frame.partition_by("copy_number", as_dict=True)
+    out = dict(row)
+    for tissue, side, n_key in (("cancer", -1.0, "violin_n"), ("healthy", 1.0, "violin_healthy_n")):
+        if not any(row[n_key]):
+            continue
+        column = f"{tissue}_z"
+        xs, ys, quartiles, ns = [], [], [], []
+        for idx, level in enumerate(cn_order):
+            counts = np.array(row[f"violin_{tissue}_counts"][idx], dtype=float)
+            counts[sentinel_bin] -= row[f"violin_{tissue}_sentinel_n"][idx]
+            x, y = violin_outline(counts, idx, side)
+            level_frame = by_level.get((cn_label(level),))
+            values = (
+                np.array([])
+                if level_frame is None
+                else drop_sentinel(level_frame, (column,))[column].drop_nulls().to_numpy()
+            )
+            xs.append(x)
+            ys.append(y)
+            quartiles.append(np.percentile(values, [25, 50, 75]).tolist() if len(values) else None)
+            ns.append(int(counts.sum()))
+        out[f"violin_{tissue}_x"], out[f"violin_{tissue}_y"] = xs, ys
+        out[f"violin_q_{tissue}"], out[n_key] = quartiles, ns
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -943,10 +1416,73 @@ def cn_table(row: dict[str, object], active_cn: list[str], cn_order: list[str]) 
     })
 
 
+def scatter_row(frame: pl.DataFrame) -> dict[str, object]:
+    """Panel 5/6 cells (the ``scatter_cn_*`` columns) recounted from per-cCRE bin_id.
+
+    From an unfiltered frame this reproduces the published cells exactly, so
+    a drop_sentinel frame redraws panels 5/6 without the -10 cCREs.
+    """
+    cells = (
+        frame.filter(pl.col("bin_id").is_not_null())
+        .group_by("bin_id", "copy_number")
+        .len()
+        .sort("bin_id", "copy_number")
+    )
+    bin_id = cells["bin_id"].to_numpy()
+    return {
+        "scatter_cn_x": GRID_CENTERS[bin_id % N_GRID],
+        "scatter_cn_y": GRID_CENTERS[bin_id // N_GRID],
+        "scatter_cn_level": cells["copy_number"].to_list(),
+        "scatter_cn_v": cells["len"].to_numpy(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Panel 5/6 selections <-> cCREs, through the per-cCRE bin_id of load_zscores
+# ---------------------------------------------------------------------------
+def selection_ccres(
+    frame: pl.DataFrame, selection: tuple[str, tuple], active_cn: list[str]
+) -> pl.DataFrame:
+    """The cCREs behind a panel 5/6 lasso.
+
+    ``("bins", bin_ids)`` comes from panel 5, whose cells aggregate the active
+    copy numbers; ``("points", ((bin_id, copy_number), ...))`` comes from
+    panel 6, whose cells are already split by copy number.
+    """
+    kind, keys = selection
+    if kind == "bins":
+        return frame.filter(
+            pl.col("bin_id").is_in(list(keys))
+            & pl.col("copy_number").is_in([cn_label(level) for level in active_cn])
+        )
+    cells = pl.DataFrame(
+        {"bin_id": [key[0] for key in keys], "copy_number": [key[1] for key in keys]},
+        schema={"bin_id": pl.Int64, "copy_number": pl.String},
+    )
+    return frame.join(cells, on=["bin_id", "copy_number"], how="semi")
+
+
+def scatter_positions(
+    rows: pl.DataFrame, dens_tbl: pa.Table, cn_tbl6: pa.Table
+) -> tuple[np.ndarray, np.ndarray]:
+    """Panel 5 and panel 6 row positions of the cells holding any of ``rows``."""
+    bins = rows["bin_id"].drop_nulls().unique().to_numpy()
+    bin_pos = np.flatnonzero(np.isin(np.asarray(dens_tbl["bin_id"]), bins))
+    cells = pl.from_arrow(cn_tbl6.select(["bin_id", "copy_number"])).with_row_index("row")
+    hit = cells.join(
+        rows.select("bin_id", "copy_number").drop_nulls().unique(),
+        on=["bin_id", "copy_number"],
+        how="semi",
+    )
+    return bin_pos.astype(np.int64), hit["row"].to_numpy().astype(np.int64)
+
+
 __all__ = [
     "CANCER_BLUE",
     "CCRE_REFERENCE",
+    "CCRE_REFERENCE_SCHEMA_VERSION",
     "CCRE_INDEX",
+    "CCRE_PREFIX",
     "CCRE_INDEX_DIR",
     "CCRE_INDEX_NAME",
     "CHROMS",
@@ -954,11 +1490,17 @@ __all__ = [
     "CHROM_OFFSET",
     "CHROM_SIZES",
     "DATA_DIR",
+    "DETAIL",
+    "DETAIL_MANIFEST",
+    "DETAIL_MAX_ROWS",
+    "DETAIL_SCHEMA_VERSION",
     "DISTRIBUTIONS",
     "Dataset",
     "DensityTable",
+    "DetailIndex",
     "FULL_GENOME",
     "GENOME_LEN",
+    "GRID_CENTERS",
     "GRID_EDGES",
     "HEALTHY_ORANGE",
     "HIST2D_SHAPE",
@@ -967,10 +1509,16 @@ __all__ = [
     "MEMBERSHIP_SCHEMA_VERSION",
     "N_GRID",
     "N_VIOLIN_BINS",
+    "OVERVIEW_MERGE",
     "REMOTE",
     "SCHEMA_VERSION",
+    "SENTINEL",
+    "TABLE_COLUMNS",
     "TRACKS",
+    "UNMAPPED",
+    "VIOLIN_CENTERS",
     "VIOLIN_EDGES",
+    "VIOLIN_HALF_WIDTH",
     "Z_LIM",
     "assert_edges_match",
     "bar_levels",
@@ -982,14 +1530,22 @@ __all__ = [
     "cols_for",
     "density_table",
     "density_table_with_index",
+    "drop_sentinel",
+    "drop_sentinel_violins",
     "file_constants",
     "genome_layout",
     "load_cohort",
+    "load_coords",
     "load_ccre_reference",
+    "load_detail_column",
+    "load_detail_index",
     "load_membership",
+    "load_zscores",
+    "mapped_levels",
     "load_loci",
     "load_panel",
     "grid_bin_id",
+    "in_polygon",
     "membership_source",
     "open_dataset",
     "panel_1",
@@ -999,5 +1555,12 @@ __all__ = [
     "panel_tags",
     "read_metadata",
     "rgba",
+    "scatter_positions",
+    "scatter_row",
+    "selection_ccres",
+    "selection_region",
+    "sentinel_mask",
     "source",
+    "violin_outline",
+    "zscore_frame",
 ]

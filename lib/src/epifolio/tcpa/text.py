@@ -310,3 +310,16 @@ def catalog_display(frame):
         if values.dtype.kind in 'iuf' and len(values) and values.notna().all() and values.eq(0).all():
             display[name] = '0'
     return display.rename(columns=names)
+
+
+def cppa_atlas_display(atlas, study_labels):
+    """Condition design across studies, treatment first; identifiers and source values stay unchanged."""
+    names = {'regimen_label': 'Treatment as reported', 'cell_line': 'Cell line', 'tissue': 'Tissue (CCLE match)',
+             'time': 'Exposure time', 'culture': 'Culture', 'stimulus': 'Stimulus', 'experiment': 'Study',
+             'treated_n': 'Treated samples', 'control_n': 'Candidate controls', 'response_check': 'Response check',
+             'UID': 'Condition ID'}
+    display = atlas.reset_index()[list(names)].copy()
+    display['experiment'] = display.experiment.map(study_labels)
+    display['control_n'] = display.control_n.astype(object).replace(-1, 'Unreported')
+    display['response_check'] = display.response_check.replace({'verified': 'Reproduced', 'unresolved': 'Unresolved'})
+    return display.rename(columns=names)

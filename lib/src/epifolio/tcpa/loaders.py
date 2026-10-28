@@ -9,7 +9,7 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 from .paths import resolve_data_dir
-from .storage import read_matrix, read_table, analysis_group, LAYOUT, named_layer_names
+from .storage import read_matrix, read_obs, read_table, analysis_group, LAYOUT, named_layer_names
 
 RPPA500_TCGA_DATASET = 'RPPA500-TCGA'
 SCHEMA_VERSION = '3.0.0'
@@ -298,6 +298,37 @@ def load_cppa(*, anchor=None, set_id='set120'):
     def values(column):
         return [x for x in metadata[column].dropna().unique().tolist() if str(x).strip() and str(x) not in {'NA','unknown'}]
     return values('cell_line_name'), values('compound_name_1'), wide, metadata, values('resource'), values('time'), long, wide.columns.tolist()
+
+
+def load_cppa_atlas(*, anchor=None):
+    """Published design of every validated CPPA condition, across sets; no responses are read."""
+    catalog = load_dataset_catalog(anchor=anchor)
+    entries = catalog.loc[catalog.resource_family.eq('CPPA') & catalog.artifact_status.eq('validated')]
+    if entries.empty or entries.summary_path.nunique() != 1 or not entries.storage_layout.eq(LAYOUT).all():
+        raise ValueError('The CPPA atlas requires one consolidated treatment summary')
+    root = resolve_data_dir(anchor=anchor, required=())
+    summary = read_table(_artifact(root, entries.iloc[0].to_dict(), 'summary_path', None),
+                         columns=entries.iloc[0].get('summary_path_columns'))
+    mandatory = ['UID', 'set', 'dataset_id', 'cell_line_name', 'compound_name_1', 'resource']
+    if not set(mandatory) <= set(summary) or summary[mandatory].isna().any().any():
+        raise ValueError('Missing mandatory CPPA condition/design metadata')
+    if summary.UID.duplicated().any() or set(summary.dataset_id) != set(entries.dataset_id):
+        raise ValueError('CPPA atlas condition or dataset identities disagree with the catalog')
+    if not ('CPPA-' + summary['set'].astype(str)).eq(summary.dataset_id).all():
+        raise ValueError('CPPA condition set and dataset identities disagree')
+    return summary.reset_index(drop=True), entries.reset_index(drop=True)
+
+
+def load_ccle_tissues(*, anchor=None):
+    """CCLE cell-line names and source tissues, read from observation metadata only."""
+    root = resolve_data_dir(anchor=anchor, required=('ccle_rppa.zarr',))
+    obs = read_obs(_artifact(root, _entry(root, 'CCLE'), 'matrix_path', 'ccle_rppa.zarr'))
+    if not {'sample_id', 'cell_line', 'tissue'} <= set(obs) or obs.sample_id.duplicated().any():
+        raise ValueError('CCLE cell-line or tissue metadata missing')
+    expected = [s.split('_', 1)[1] if '_' in s else 'Unknown' for s in obs.sample_id.astype(str)]
+    if obs.tissue.astype(str).tolist() != expected:
+        raise ValueError('CCLE tissue metadata disagrees with source sample identifiers')
+    return obs[['sample_id', 'cell_line', 'tissue']].reset_index(drop=True)
 
 
 def _cppa_reconstruction(metadata, entry):

@@ -64,6 +64,14 @@ def read_matrix(path, dataset_id=None, *, obs_ids=None, var_ids=None):
     return _subset(result, obs_ids, var_ids)
 
 
+def read_obs(path):
+    """Observation metadata of a standalone store; the matrix stays on disk."""
+    group = zarr.open_group(str(path), mode='r')
+    if 'storage_layout' in group['uns']:
+        raise ValueError(f'Observation-only reads need a standalone store: {path}')
+    return ad.io.read_elem(group['obs'])
+
+
 def _subset(data, obs_ids, var_ids):
     if obs_ids is None and var_ids is None:
         return data

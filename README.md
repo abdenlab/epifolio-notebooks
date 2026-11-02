@@ -13,20 +13,26 @@ Three use cases to support:
 epifolio-notebooks/
 ├── notebooks/                      # The Marimo notebooks
 │   ├── nmf_sample_explorer.py            # PEP 723 metadata (no bootstrap cell needed)
+│   ├── nmf_ccre_explorer.py
 │   ├── higlass_explorer.py
 │   ├── pca_hiplot.py
-│   └── ccre_scatter.py
+│   ├── cnv_ccre_explorer.py
+│   ├── tcpa_cell_lines_explorer.py
+│   ├── tcpa_cohorts_explorer.py
+│   └── tcpa_perturbations_explorer.py
 ├── lib/                            # The epifolio package (installed via PEP 723)
 │   ├── pyproject.toml             # Package metadata for epifolio
 │   └── src/
 │       └── epifolio/
-│           ├── __init__.py
-│           ├── color_utils.py
-│           ├── data_utils.py
-│           ├── heatmap.py
-│           ├── itcr_embedding_utils.py
-│           ├── sort_utils.py
-│           ├── upt_heatmap.py
+│           ├── __init__.py        # ASSETS
+│           ├── colors.py          # Color palettes
+│           ├── metadata.py        # Clinical-metadata shaping
+│           ├── embedding.py       # PCA/UMAP display helpers
+│           ├── nmf.py             # NMF activity heatmap
+│           ├── higlass.py         # HiGlass view-config transforms
+│           ├── tcga.py            # TCGA barcode parsing
+│           ├── cnv.py             # CNV/cCRE payload reads
+│           ├── tcpa/              # TCPA loaders, stats and figures (`tcpa` extra)
 │           └── assets/            # Bundled as package data
 │               ├── conf/          # JSON configs, color maps, vocabularies
 │               └── data/          # Small reference datasets only
@@ -41,7 +47,7 @@ Each notebook is self-contained. Two mechanisms make this work:
 
 ```python
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.12"
 # dependencies = [
 #     "marimo>=0.20.2",
 #     "numpy>=2.3,<3",
@@ -59,7 +65,7 @@ When run via `uvx marimo run` or on Molab, `uv` reads this and installs all deps
 
 ### 2. Assets as package data
 
-Only small, stable assets (configs, color maps, vocabularies, and small reference tables) are bundled inside the `epifolio` package under `epifolio/assets/`. Larger or evolving datasets — NMF/PCA embeddings, sample and clinical metadata — are hosted on the remote server (`https://projects.abdenlab.org/itcr/epifolio/`) and loaded by URL; the loaders in `data_utils.py` accept both packaged-asset paths and remote URLs transparently. Bundled assets are accessed via `importlib.resources`:
+Only small, stable assets (configs, color maps, vocabularies, and small reference tables) are bundled inside the `epifolio` package under `epifolio/assets/`. Larger or evolving datasets — NMF/PCA embeddings, sample and clinical metadata — are hosted on the remote server (`https://projects.abdenlab.org/itcr/epifolio/`) and loaded by URL. Bundled assets are accessed via `importlib.resources`:
 
 ```python
 from importlib.resources import files
@@ -76,11 +82,11 @@ Anything too large for git or the package data bundle gets hosted separately:
 ```
 http://projects.abdenlab.org/itcr/epifolio/...
 ```
-Some things can be fetched lazily by `epifolio.data_utils` on first access, cached locally.
-
-In other cases, we may access large assets like Parquet files using appropriate tools like Polars that can handle streaming and random access as needed directly from URLs.
+We may access large assets like Parquet files using appropriate tools like Polars that can handle streaming and random access as needed directly from URLs.
 
 The CNV/cCRE explorer reads its Parquet data remotely rather than bundling it: `epifolio.cnv.source()` prefers a package-local copy under `lib/src/epifolio/assets/data/cnv_ccre/` if one is present, else the mirror at `https://projects.abdenlab.org/itcr/epifolio/notebooks/cnv_ccre/` (override with `EPIFOLIO_CNV_REMOTE`). Polars range-reads the columns each panel needs, so no full download occurs.
+
+The TCPA explorers read AnnData/Zarr stores and Parquet tables over HTTP from `https://projects.abdenlab.org/itcr/epifolio/notebooks/tcpa/`; set `TCPA_DATA_DIR` to a local copy of that directory to read it instead. They need the `tcpa` extra (`epifolio[tcpa]`), which the dev workspace installs.
 
 ## Notebook surface
 
@@ -89,6 +95,9 @@ The CNV/cCRE explorer reads its Parquet data remotely rather than bundling it: `
 - `notebooks/higlass_explorer.py` — packaged HiGlass browser for the published multivec viewconfig
 - `notebooks/cnv_ccre_explorer.py` — per-patient CNV/cCRE dashboard with genome tracks, copy-number filtering, and selection readouts.
   `marimo export html` is currently broken for this notebook (upstream marimo bug in `_messaging/notification.py` — crashes after all cells run); use `marimo run`/`marimo edit`, not `export`.
+- `notebooks/tcpa_cell_lines_explorer.py` — RPPA500 CCLE protein measurements: tissue comparisons, per-cell-line profiles, co-varying proteins, and drug-sensitivity correlations
+- `notebooks/tcpa_cohorts_explorer.py` — RPPA500 TCGA and contributed patient-cohort studies, one source dataset at a time
+- `notebooks/tcpa_perturbations_explorer.py` — Cancer Perturbed Proteomics Atlas (CPPA): protein responses to drug treatment across cell lines and studies
 
 ## Developer Workflow
 
@@ -100,6 +109,9 @@ uv run marimo edit --no-sandbox notebooks/nmf_sample_explorer.py     # Dev with 
 uv run marimo edit --no-sandbox notebooks/pca_hiplot.py
 uv run marimo edit --no-sandbox notebooks/higlass_explorer.py
 uv run marimo edit --no-sandbox notebooks/cnv_ccre_explorer.py
+uv run marimo edit --no-sandbox notebooks/tcpa_cell_lines_explorer.py
+uv run marimo edit --no-sandbox notebooks/tcpa_cohorts_explorer.py
+uv run marimo edit --no-sandbox notebooks/tcpa_perturbations_explorer.py
 ```
 
 The root `pyproject.toml` includes `epifolio` as an editable dependency (`lib/`), so changes to shared modules are reflected immediately without reinstalling.
@@ -112,6 +124,9 @@ uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/mai
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/pca_hiplot.py
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/higlass_explorer.py
 uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/cnv_ccre_explorer.py
+uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/tcpa_cell_lines_explorer.py
+uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/tcpa_cohorts_explorer.py
+uvx marimo run https://raw.githubusercontent.com/abdenlab/epifolio-notebooks/main/notebooks/tcpa_perturbations_explorer.py
 
 # Option B: Clone and run
 git clone https://github.com/abdenlab/epifolio-notebooks && cd epifolio-notebooks
@@ -119,6 +134,9 @@ uv run marimo run --no-sandbox notebooks/nmf_sample_explorer.py
 uv run marimo run --no-sandbox notebooks/pca_hiplot.py
 uv run marimo run --no-sandbox notebooks/higlass_explorer.py
 uv run marimo run --no-sandbox notebooks/cnv_ccre_explorer.py
+uv run marimo run --no-sandbox notebooks/tcpa_cell_lines_explorer.py
+uv run marimo run --no-sandbox notebooks/tcpa_cohorts_explorer.py
+uv run marimo run --no-sandbox notebooks/tcpa_perturbations_explorer.py
 ```
 
 Option A reads PEP 723 metadata and installs `epifolio` from the git repo automatically via the sandbox prompt — answer `y` when asked. Option B runs against the cloned project's own `.venv` instead (`--no-sandbox` skips the prompt); never answer `y` there, since accepting the sandbox re-resolves `epifolio` from the git URL and can shadow local edits under `lib/`.

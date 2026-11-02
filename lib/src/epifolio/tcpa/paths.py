@@ -1,16 +1,22 @@
-"""Resolve the TCPA data source: explicit local data, else the hosted release."""
+"""Resolve the TCPA data source: a local TCPA_DATA_DIR, else the hosted release."""
 import os
 from pathlib import Path
-import tomllib
+import urllib.error
 import urllib.request
 
 # Dataset-specific artifact paths belong to the catalog and are checked by loaders.
 REQUIRED_DATA = ('manifest.parquet',)
 # Hosted release: the same layout as a local data directory, read over HTTP.
-REMOTE = 'https://users.abdenlab.org/voy/itcr/epifolio/notebooks/tcpa'
-# A checkout of the source project keeps its own local data and never reads REMOTE.
-SOURCE_PROJECT = 'dev-tcpa'
+REMOTE = 'https://projects.abdenlab.org/itcr/epifolio/notebooks/tcpa'
 TIMEOUT = 30
+
+
+class _RefuseRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_NO_REDIRECT = urllib.request.build_opener(_RefuseRedirect)
 
 
 class RemotePath(os.PathLike):
@@ -46,9 +52,15 @@ class RemotePath(os.PathLike):
         return self.url.startswith(str(root).rstrip('/') + '/')
 
     def exists(self):
+        # Hosts may redirect a missing object to an HTML page; only a direct 200 counts.
         request = urllib.request.Request(self.url, method='HEAD')
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-            return response.status == 200
+        try:
+            with _NO_REDIRECT.open(request, timeout=TIMEOUT) as response:
+                return response.status == 200
+        except urllib.error.HTTPError as error:
+            if error.code == 404 or 300 <= error.code < 400:
+                return False
+            raise
 
     def read_bytes(self):
         with urllib.request.urlopen(self.url, timeout=TIMEOUT) as response:
@@ -75,26 +87,11 @@ def _validate(directory: Path, required: tuple[str, ...], source: str) -> Path:
     return directory
 
 
-def _project(start: Path) -> tuple[Path, str | None] | None:
-    """Return the nearest ancestor project directory and its declared name."""
-    for directory in (start, *start.parents):
-        config = directory / 'pyproject.toml'
-        if config.is_file():
-            with config.open('rb') as stream:
-                return directory, tomllib.load(stream).get('project', {}).get('name')
-    return None
+def resolve_data_dir(*, required: tuple[str, ...] = REQUIRED_DATA) -> Path | RemotePath:
+    """TCPA_DATA_DIR if set, else the hosted release.
 
-
-def resolve_data_dir(*, anchor: str | Path | None = None,
-                     required: tuple[str, ...] = REQUIRED_DATA) -> Path | RemotePath:
-    """Resolve override > caller anchor > cwd's source project > hosted release.
-
-    An anchor is an existing notebook file or its directory. An explicit local
-    choice never falls back: TCPA_DATA_DIR, data adjacent to the anchor, and a
-    source-project checkout must each hold valid local data or fail. The hosted
-    release is used only where no local data is claimed, and unrelated cwd or
-    parent data directories are never searched. Artifact validation checks
-    file/store presence, not scientific correctness; remote objects are checked
+    A local override never falls back: it must hold the required artifacts
+    (presence only, not scientific correctness). Remote objects are checked
     when read, so resolving performs no network access.
     """
     if 'TCPA_DATA_DIR' in os.environ:
@@ -102,16 +99,4 @@ def resolve_data_dir(*, anchor: str | Path | None = None,
         if not override.strip():
             raise ValueError('TCPA_DATA_DIR must name a nonempty data directory')
         return _validate(Path(override).expanduser().resolve(), required, 'TCPA_DATA_DIR')
-    if anchor is not None:
-        location = Path(anchor).expanduser().resolve()
-        if not location.exists():
-            raise FileNotFoundError(f'Caller anchor does not exist: {location}')
-        directory = location if location.is_dir() else location.parent
-        project = _project(directory)
-        if (directory / 'data').exists() or (project and project[1] == SOURCE_PROJECT):
-            return _validate(directory / 'data', required, 'Caller anchor')
-        return RemotePath(REMOTE)
-    project = _project(Path.cwd().resolve())
-    if project and project[1] == SOURCE_PROJECT:
-        return _validate(project[0] / 'data', required, 'Working-directory project')
     return RemotePath(REMOTE)

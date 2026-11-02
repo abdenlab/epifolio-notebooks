@@ -17,8 +17,6 @@
 # output_max_bytes = 20_000_000
 # ///
 
-# Tabbed redesign of CCLE500_marimo.py: run with `uv run marimo edit tabcopy_ccle.py`.
-# Dependencies, including the local tcpa package, are declared in pyproject.toml.
 import marimo
 
 __generated_with = "0.23.14"
@@ -42,7 +40,7 @@ def _():
     from plotly.subplots import make_subplots
     from epifolio.tcpa.loaders import load_ccle
 
-    cell_line_names, df_expr, df_meta, protein_list, tissue_list, tissue_types = load_ccle(anchor=globals().get("__file__"))
+    cell_line_names, df_expr, df_meta, protein_list, tissue_list, tissue_types = load_ccle()
     feature_labels = df_expr.attrs["feature_labels"]
     sample_labels = df_expr.attrs["sample_labels"]
     tissue_labels = df_expr.attrs["tissue_labels"]
@@ -332,7 +330,7 @@ def _(mo):
     from epifolio.tcpa.loaders import load_interaction_reference, interaction_human_population
     from epifolio.tcpa.stats import interaction_network
     from epifolio.tcpa.figures import interaction_figure
-    interaction_source, interaction_provenance = load_interaction_reference(anchor=globals().get("__file__"))
+    interaction_source, interaction_provenance = load_interaction_reference()
     network_search = mo.ui.text(label="Search network assays / targets / sites", debounce=True)
     network_scope = mo.ui.dropdown(options=['Reference assay neighborhood','All mapped assays'],
         value='Reference assay neighborhood', label="Network scope")
@@ -444,7 +442,7 @@ def _(mo):
     from epifolio.tcpa.loaders import load_ccle_drug_sensitivity, load_ccle_drug_correlations
     from epifolio.tcpa.stats import published_family, published_family_counts
     from epifolio.tcpa.figures import published_volcano_figure
-    drug_catalog = load_ccle_drug_sensitivity(anchor=globals().get("__file__"))
+    drug_catalog = load_ccle_drug_sensitivity()
     drug_dataset = mo.ui.dropdown(options={'CTRPv2': 'ctrpv2', 'GDSC': 'gdsc'}, value='CTRPv2', label="Drug dataset")
     drug_search_by = mo.ui.dropdown(options=['Drug', 'Protein'], value='Drug', label="Search by")
     return drug_catalog, drug_dataset, drug_search_by, load_ccle_drug_correlations, published_family, published_family_counts, published_volcano_figure
@@ -464,7 +462,7 @@ def _(mo, drug_catalog, drug_dataset):
 
 @app.cell
 def _(mo, feature_labels, drug_dataset, drug_lineage, drug_search_by, load_ccle_drug_correlations, published_family_counts):
-    drug_rho, drug_p, drug_n = load_ccle_drug_correlations(drug_dataset.value, drug_lineage.value, anchor=globals().get("__file__"))
+    drug_rho, drug_p, drug_n = load_ccle_drug_correlations(drug_dataset.value, drug_lineage.value)
     _by_drug = drug_search_by.value == 'Drug'
     # One BH family per drug across assays, or per assay across drugs: the portal's rule.
     _counts = published_family_counts(drug_rho if _by_drug else drug_rho.T, drug_p if _by_drug else drug_p.T, alpha=0.1)

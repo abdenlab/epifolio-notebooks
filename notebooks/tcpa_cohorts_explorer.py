@@ -17,8 +17,6 @@
 # output_max_bytes = 20_000_000
 # ///
 
-# Tabbed redesign of CONTRIB_Analysis_marimo.py: run with `uv run marimo edit tabcopy_contrib.py`.
-# Dependencies, including the local tcpa package, are declared in pyproject.toml.
 import marimo
 
 __generated_with = "0.23.14"
@@ -57,7 +55,7 @@ def _(mo):
 def _(mo, dataset_options):
     from epifolio.tcpa.loaders import load_dataset_catalog
     from epifolio.tcpa.text import catalog_display
-    dataset_catalog = load_dataset_catalog(anchor=globals().get("__file__"))
+    dataset_catalog = load_dataset_catalog()
     cohort_catalog = dataset_catalog.loc[dataset_catalog.resource_family.isin(['CONTRIB', 'RPPA500-TCGA'])]
     cohort_options = dataset_options(cohort_catalog)
     cohort_default = ('RPPA500-TCGA' if ((dataset_catalog.dataset_id == 'RPPA500-TCGA') & (dataset_catalog.artifact_status == 'validated')).any() else 'CONTRIB-TCPA00000002')
@@ -83,7 +81,7 @@ def _(selected_dataset_id, mo, load_tcga_rppa500):
     import numpy as np
     from epifolio.tcpa.loaders import load_contrib
 
-    source_groups, source_expr, source_obs, source_proteins = (load_tcga_rppa500(anchor=globals().get("__file__")) if selected_dataset_id == "RPPA500-TCGA" else load_contrib(anchor=globals().get("__file__"), dataset_id=selected_dataset_id))
+    source_groups, source_expr, source_obs, source_proteins = (load_tcga_rppa500() if selected_dataset_id == "RPPA500-TCGA" else load_contrib(dataset_id=selected_dataset_id))
     mo.stop(source_expr.empty, mo.md("No measured protein assays are available for this dataset."))
     return source_expr, source_obs, pd, px, go, np
 
@@ -324,7 +322,7 @@ def _(mo):
     from epifolio.tcpa.loaders import load_interaction_reference, interaction_human_population
     from epifolio.tcpa.stats import interaction_network
     from epifolio.tcpa.figures import interaction_figure
-    interaction_source, interaction_provenance = load_interaction_reference(anchor=globals().get("__file__"))
+    interaction_source, interaction_provenance = load_interaction_reference()
     network_search = mo.ui.text(label="Search network assays / targets / sites", debounce=True)
     network_scope = mo.ui.dropdown(options=['Reference assay neighborhood','All mapped assays'],
         value='Reference assay neighborhood', label="Network scope")

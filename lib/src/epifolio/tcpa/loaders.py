@@ -32,11 +32,11 @@ def interaction_human_population(dataset_id, metadata):
     return False, 'Human-only scaffold: select observations with source-declared human species'
 
 
-def load_interaction_reference(*, anchor=None):
+def load_interaction_reference():
     """Read only the pinned SIGNOR reference; never download during analysis."""
     import hashlib
     import json
-    root = resolve_data_dir(anchor=anchor,
+    root = resolve_data_dir(
         required=('interaction_source.json', 'interaction_edges.parquet'))
     manifest = json.loads((root/'interaction_source.json').read_text())
     source = manifest['source']; artifact = manifest['artifact']
@@ -98,8 +98,8 @@ def _labels(var):
     return result
 
 
-def load_ccle(*, anchor=None):
-    root = resolve_data_dir(anchor=anchor, required=('ccle_rppa.zarr',))
+def load_ccle():
+    root = resolve_data_dir(required=('ccle_rppa.zarr',))
     entry = _entry(root, 'CCLE')
     data = _matrix(_artifact(root, entry, 'matrix_path', 'ccle_rppa.zarr'))
     _ownership(data, 'CCLE', entry)
@@ -117,14 +117,14 @@ def load_ccle(*, anchor=None):
     return expr.index.tolist(), expr, meta, expr.columns.tolist(), sorted(meta.tissue.unique()), meta.tissue.tolist()
 
 
-def _ccle_drug_group(anchor):
-    root = resolve_data_dir(anchor=anchor, required=('ccle_rppa.zarr',))
+def _ccle_drug_group():
+    root = resolve_data_dir(required=('ccle_rppa.zarr',))
     return analysis_group(_artifact(root, _entry(root, 'CCLE'), 'matrix_path', 'ccle_rppa.zarr'), 'drug_sensitivity')
 
 
-def load_ccle_drug_sensitivity(*, anchor=None):
+def load_ccle_drug_sensitivity():
     """Catalog of the portal's published protein–drug correlations; values stay on disk."""
-    group = _ccle_drug_group(anchor)
+    group = _ccle_drug_group()
     features = ad.io.read_elem(group['features'])
     if not features.index.is_unique or not features.portal_protein.is_unique:
         raise ValueError('Published drug-correlation assay identities are ambiguous')
@@ -138,9 +138,9 @@ def load_ccle_drug_sensitivity(*, anchor=None):
     return {'features': features, 'datasets': datasets, 'contract': json.loads(ad.io.read_elem(group['contract_json']))}
 
 
-def load_ccle_drug_correlations(drug_dataset, lineage, *, anchor=None):
+def load_ccle_drug_correlations(drug_dataset, lineage):
     """One lineage's assay × drug rho, p-value and n; unpublished pairs are NaN / 0."""
-    group = _ccle_drug_group(anchor)
+    group = _ccle_drug_group()
     if drug_dataset not in group['datasets']:
         raise ValueError(f'Unknown published drug dataset: {drug_dataset}')
     node = group['datasets'][drug_dataset]
@@ -153,9 +153,9 @@ def load_ccle_drug_correlations(drug_dataset, lineage, *, anchor=None):
     return tuple(pd.DataFrame(node[field][layer], index=index, columns=columns) for field in ('rho', 'p_value', 'n'))
 
 
-def load_cppa_portal_analyses(*, anchor=None):
+def load_cppa_portal_analyses():
     """Portal-wide CPPA drug tables; they are pooled across sets by the provider."""
-    root = resolve_data_dir(anchor=anchor, required=('manifest.parquet',))
+    root = resolve_data_dir(required=('manifest.parquet',))
     catalog = pd.read_parquet(root / 'manifest.parquet')
     names = catalog.loc[catalog.resource_family.eq('CPPA') & catalog.artifact_status.eq('validated'), 'matrix_path'].unique()
     if len(names) != 1:
@@ -209,16 +209,16 @@ def _cohort_result(data, dataset_id, entry):
     return obs.Tumor.unique().tolist(), expr, obs, expr.columns.tolist()
 
 
-def load_contrib(*, anchor=None, dataset_id=TCGA_DATASET):
-    root = resolve_data_dir(anchor=anchor, required=())
+def load_contrib(*, dataset_id=TCGA_DATASET):
+    root = resolve_data_dir(required=())
     entry = _entry(root, dataset_id)
     data = _matrix(_artifact(root, entry, 'matrix_path', 'contrib_patient_rppa.zarr'), dataset_id)
     _ownership(data, dataset_id, entry)
     return _cohort_result(data, dataset_id, entry)
 
 
-def load_tcga_rppa500(*, anchor=None):
-    root = resolve_data_dir(anchor=anchor, required=())
+def load_tcga_rppa500():
+    root = resolve_data_dir(required=())
     entry = _entry(root, RPPA500_TCGA_DATASET)
     if entry is None:
         raise ValueError('RPPA500-TCGA is not registered; PanCan11 is not a fallback')
@@ -242,8 +242,8 @@ def delta_wide(long):
         'measured_features':int(measured.sum()), 'unmeasured_features':int((~measured).sum())}
 
 
-def load_cppa(*, anchor=None, set_id='set120'):
-    root = resolve_data_dir(anchor=anchor, required=())
+def load_cppa(*, set_id='set120'):
+    root = resolve_data_dir(required=())
     entry = _entry(root, f'CPPA-{set_id}')
     if entry is None and set_id != 'set120':
         raise ValueError(f'CPPA {set_id} is not registered')
@@ -300,13 +300,13 @@ def load_cppa(*, anchor=None, set_id='set120'):
     return values('cell_line_name'), values('compound_name_1'), wide, metadata, values('resource'), values('time'), long, wide.columns.tolist()
 
 
-def load_cppa_atlas(*, anchor=None):
+def load_cppa_atlas():
     """Published design of every validated CPPA condition, across sets; no responses are read."""
-    catalog = load_dataset_catalog(anchor=anchor)
+    catalog = load_dataset_catalog()
     entries = catalog.loc[catalog.resource_family.eq('CPPA') & catalog.artifact_status.eq('validated')]
     if entries.empty or entries.summary_path.nunique() != 1 or not entries.storage_layout.eq(LAYOUT).all():
         raise ValueError('The CPPA atlas requires one consolidated treatment summary')
-    root = resolve_data_dir(anchor=anchor, required=())
+    root = resolve_data_dir(required=())
     summary = read_table(_artifact(root, entries.iloc[0].to_dict(), 'summary_path', None),
                          columns=entries.iloc[0].get('summary_path_columns'))
     mandatory = ['UID', 'set', 'dataset_id', 'cell_line_name', 'compound_name_1', 'resource']
@@ -319,9 +319,9 @@ def load_cppa_atlas(*, anchor=None):
     return summary.reset_index(drop=True), entries.reset_index(drop=True)
 
 
-def load_ccle_tissues(*, anchor=None):
+def load_ccle_tissues():
     """CCLE cell-line names and source tissues, read from observation metadata only."""
-    root = resolve_data_dir(anchor=anchor, required=('ccle_rppa.zarr',))
+    root = resolve_data_dir(required=('ccle_rppa.zarr',))
     obs = read_obs(_artifact(root, _entry(root, 'CCLE'), 'matrix_path', 'ccle_rppa.zarr'))
     if not {'sample_id', 'cell_line', 'tissue'} <= set(obs) or obs.sample_id.duplicated().any():
         raise ValueError('CCLE cell-line or tissue metadata missing')
@@ -361,8 +361,8 @@ def _cppa_reconstruction(metadata, entry):
     return counts
 
 
-def load_manifest(*, anchor=None):
-    root = resolve_data_dir(anchor=anchor, required=('manifest.parquet',))
+def load_manifest():
+    root = resolve_data_dir(required=('manifest.parquet',))
     print(f'Loading source catalog from {root / "manifest.parquet"}...')
     return pd.read_parquet(root / 'manifest.parquet')
 
@@ -393,8 +393,8 @@ def _legacy_catalog(frame):
     return pd.DataFrame(rows)
 
 
-def load_dataset_catalog(*, anchor=None):
-    frame = load_manifest(anchor=anchor)
+def load_dataset_catalog():
+    frame = load_manifest()
     if 'artifact_status' not in frame:
         frame = _legacy_catalog(frame)
     required = {'dataset_id', 'resource_family', 'artifact_status', 'analysis_policy', 'block_reason', 'matrix_path'}
@@ -480,13 +480,13 @@ def _observation_labels(obs):
     return {key: f'{value} [{key}]' if duplicated.loc[key] else value for key, value in display.items()}
 
 
-def load_cppa_sample_detail(condition_id, feature_id, *, anchor=None, set_id='set120'):
+def load_cppa_sample_detail(condition_id, feature_id, *, set_id='set120'):
     """Source sample measurements with persisted membership, never fitted controls.
 
     Unresolved controls are shown individually as candidates. No candidate mean
     or reconstructed difference is calculated by this display adapter.
     """
-    root = resolve_data_dir(anchor=anchor, required=())
+    root = resolve_data_dir(required=())
     dataset_id = f'CPPA-{set_id}'
     entry = _entry(root, dataset_id)
     membership = _dataset_table(root, entry, 'membership_path', 'cppa_membership.parquet')

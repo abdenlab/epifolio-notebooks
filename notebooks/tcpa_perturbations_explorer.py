@@ -16,8 +16,6 @@
 # output_max_bytes = 20_000_000
 # ///
 
-# Tabbed redesign of CPPA_Analysis_marimo.py: run with `uv run marimo edit tabcopy_cppa.py`.
-# Dependencies, including the local tcpa package, are declared in pyproject.toml.
 import marimo
 
 __generated_with = "0.23.14"
@@ -72,11 +70,11 @@ def _():
     from epifolio.tcpa.loaders import load_cppa_atlas, load_ccle_tissues, load_cppa_portal_analyses
     from epifolio.tcpa.observations import (cppa_tissue_labels, cppa_atlas_conditions, cppa_atlas_values, cppa_atlas_mask,
         cppa_study_labels, cppa_entry_options, cppa_profile, cppa_study_choices, CPPA_ATLAS_FACETS)
-    atlas_summary, atlas_entries = load_cppa_atlas(anchor=globals().get("__file__"))
+    atlas_summary, atlas_entries = load_cppa_atlas()
     # Tissue comes from exact CCLE cell-line name matches; other lines stay "Not yet mapped".
-    atlas = cppa_atlas_conditions(atlas_summary, cppa_tissue_labels(atlas_summary.cell_line_name.unique(), load_ccle_tissues(anchor=globals().get("__file__"))))
+    atlas = cppa_atlas_conditions(atlas_summary, cppa_tissue_labels(atlas_summary.cell_line_name.unique(), load_ccle_tissues()))
     study_labels = cppa_study_labels(atlas)
-    portal_tables = load_cppa_portal_analyses(anchor=globals().get("__file__"))
+    portal_tables = load_cppa_portal_analyses()
     return (atlas, atlas_entries, cppa_atlas_values, cppa_atlas_mask, cppa_entry_options, cppa_profile, cppa_study_choices,
             CPPA_ATLAS_FACETS, study_labels, portal_tables)
 
@@ -210,7 +208,7 @@ def _(selected_dataset_id, load_cppa_cached, mo):
     import plotly.express as px
     import plotly.graph_objects as go
 
-    cell_lines, compounds, source_response, source_treatment, resources, times, source_long, source_proteins = load_cppa_cached(anchor=globals().get("__file__"), set_id=selected_dataset_id.removeprefix("CPPA-"))
+    cell_lines, compounds, source_response, source_treatment, resources, times, source_long, source_proteins = load_cppa_cached(set_id=selected_dataset_id.removeprefix("CPPA-"))
     mo.stop(source_response.empty, mo.md("No measured responses are available for this experiment."))
     return source_response, source_treatment, source_long, pd, px, go
 
@@ -390,7 +388,7 @@ def _(assay_table, display_labels, feature_labels,
             detail = mo.md("Select a row to see its individual samples.")
             if assay is not None:
                 from epifolio.tcpa.loaders import load_cppa_sample_detail
-                samples, diagnostic = load_cppa_sample_detail(uid,assay,anchor=globals().get('__file__'),set_id=selected_dataset_id.removeprefix('CPPA-'))
+                samples, diagnostic = load_cppa_sample_detail(uid,assay,set_id=selected_dataset_id.removeprefix('CPPA-'))
                 detail = mo.vstack([mo.md(f"Condition {uid} · Assay {assay} · Published Δp: {df_cppa_wide.loc[uid,assay]:.9g}. Reconstruction: **{diagnostic.reconstruction_status}**. {diagnostic.reconstruction_reason}"),
                     mo.md("Control (P0) and treated (P1) samples. Unconfirmed controls are marked as candidates."),mo.ui.table(samples,label='Selected individual samples',selection=None,pagination=True,max_height=350)])
             return mo.vstack([mo.hstack([response_condition],justify='start'),curve,response_results,

@@ -1,13 +1,14 @@
 """Resolve the TCPA data source: a local TCPA_DATA_DIR, else the hosted release."""
+
 import os
-from pathlib import Path
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 # Dataset-specific artifact paths belong to the catalog and are checked by loaders.
-REQUIRED_DATA = ('manifest.parquet',)
+REQUIRED_DATA = ("manifest.parquet",)
 # Hosted release: the same layout as a local data directory, read over HTTP.
-REMOTE = 'https://projects.abdenlab.org/itcr/epifolio/notebooks/tcpa'
+REMOTE = "https://projects.abdenlab.org/itcr/epifolio/notebooks/tcpa"
 TIMEOUT = 30
 
 
@@ -27,33 +28,33 @@ class RemotePath(os.PathLike):
     """
 
     def __init__(self, url):
-        self.url = str(url).rstrip('/')
+        self.url = str(url).rstrip("/")
 
     def __str__(self):
         return self.url
 
     def __repr__(self):
-        return f'RemotePath({self.url!r})'
+        return f"RemotePath({self.url!r})"
 
     def __fspath__(self):
         return self.url
 
     def __truediv__(self, name):
-        return RemotePath(f'{self.url}/{name}')
+        return RemotePath(f"{self.url}/{name}")
 
     @property
     def name(self):
-        return self.url.rsplit('/', 1)[-1]
+        return self.url.rsplit("/", 1)[-1]
 
     def resolve(self):
         return self
 
     def is_relative_to(self, root):
-        return self.url.startswith(str(root).rstrip('/') + '/')
+        return self.url.startswith(str(root).rstrip("/") + "/")
 
     def exists(self):
         # Hosts may redirect a missing object to an HTML page; only a direct 200 counts.
-        request = urllib.request.Request(self.url, method='HEAD')
+        request = urllib.request.Request(self.url, method="HEAD")
         try:
             with _NO_REDIRECT.open(request, timeout=TIMEOUT) as response:
                 return response.status == 200
@@ -72,18 +73,18 @@ class RemotePath(os.PathLike):
 
 def _validate(directory: Path, required: tuple[str, ...], source: str) -> Path:
     if not directory.is_dir():
-        raise FileNotFoundError(f'{source}: data directory does not exist: {directory}')
+        raise FileNotFoundError(f"{source}: data directory does not exist: {directory}")
     for name in required:
-        if Path(name).name != name or name in {'', '.', '..'}:
-            raise ValueError(f'Expected a direct data artifact name, got {name!r}')
+        if Path(name).name != name or name in {"", ".", ".."}:
+            raise ValueError(f"Expected a direct data artifact name, got {name!r}")
         artifact = directory / name
         valid = artifact.is_file()
-        if name.endswith('.zarr'):
+        if name.endswith(".zarr"):
             valid = artifact.is_dir() and any(
-                (artifact / marker).is_file() for marker in ('.zgroup', 'zarr.json')
+                (artifact / marker).is_file() for marker in (".zgroup", "zarr.json")
             )
         if not valid:
-            raise FileNotFoundError(f'{source}: missing or invalid data artifact: {artifact}')
+            raise FileNotFoundError(f"{source}: missing or invalid data artifact: {artifact}")
     return directory
 
 
@@ -94,9 +95,9 @@ def resolve_data_dir(*, required: tuple[str, ...] = REQUIRED_DATA) -> Path | Rem
     (presence only, not scientific correctness). Remote objects are checked
     when read, so resolving performs no network access.
     """
-    if 'TCPA_DATA_DIR' in os.environ:
-        override = os.environ['TCPA_DATA_DIR']
+    if "TCPA_DATA_DIR" in os.environ:
+        override = os.environ["TCPA_DATA_DIR"]
         if not override.strip():
-            raise ValueError('TCPA_DATA_DIR must name a nonempty data directory')
-        return _validate(Path(override).expanduser().resolve(), required, 'TCPA_DATA_DIR')
+            raise ValueError("TCPA_DATA_DIR must name a nonempty data directory")
+        return _validate(Path(override).expanduser().resolve(), required, "TCPA_DATA_DIR")
     return RemotePath(REMOTE)

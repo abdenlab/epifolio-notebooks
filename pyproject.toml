@@ -29,5 +29,8 @@ dev = [
     "ruff>=0.15.8",
 ]
 
+[tool.ruff]
+line-length = 100
+
 [tool.marimo.runtime]
 output_max_bytes = 50_000_000

@@ -1473,5 +1473,17 @@ def _(mo):
     return hm_order, hm_cut
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ---
+    Data from [The Cancer Proteome Atlas (TCPA)](https://tcpa.drbioright.org/rppa500mclp/), MD Anderson Cancer Center.
+    Citations: [Li et al., Nat Methods 2013](https://doi.org/10.1038/nmeth.2650) ·
+    [Li et al., Cancer Res 2017](https://doi.org/10.1158/0008-5472.CAN-17-0369) ·
+    [Li et al., Nat Cancer 2024](https://doi.org/10.1038/s43018-024-00817-x)
+    """).style({"font-size": "0.85rem", "opacity": "0.75"})
+    return
+
+
 if __name__ == "__main__":
     app.run()

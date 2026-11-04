@@ -3,80 +3,6 @@
 from math import isfinite
 
 
-def phenotype_input_gates(surface):
-    """Declared unavailable capabilities; these rows never activate analyses."""
-    gates = {
-        "patient": [
-            (
-                "Reactive patient survival",
-                "Per-participant endpoint time/event data, endpoint definition, time units and censoring semantics.",
-                "Validate release and exact participant joins, uniqueness, coverage and missingness. Specify the selected population, cutoff and survival method.",
-            ),
-            (
-                "Patient ecDNA",
-                "Sourced ecDNA calls, release and sample-to-participant crosswalk.",
-                "Validate sample identity, call definition and coverage; distinguish negative calls from missing or unassessed samples.",
-            ),
-        ],
-        "cell_line": [
-            (
-                "Cell-line ecDNA",
-                "Sourced ecDNA calls, release and model crosswalk.",
-                "Validate model identity, call definition and coverage; distinguish negative calls from missing or unassessed models.",
-            ),
-            (
-                "Cell-line mutation",
-                "Mutation data, release, model/gene joins and assay coverage.",
-                "Define altered, wild-type and missing separately; wild-type requires adequate coverage. Validate joins and the comparison method.",
-            ),
-            (
-                "Cell-line dependency",
-                "Dependency scores, release and model/gene joins.",
-                "Validate score meaning, scale, coverage, duplicate mappings and missingness; specify the association method.",
-            ),
-            (
-                "Recalculated cell-line drug association",
-                "Per-cell-line sensitivity outcomes with endpoint definition, release and cell/drug identity mapping. The portal publishes correlation results only.",
-                "Validate outcome units, design compatibility, coverage and missingness; specify the association method. Published correlations cannot be re-derived for another selection.",
-            ),
-        ],
-        "cppa": [
-            (
-                "Recalculated CPPA predictive markers",
-                "Per-cell-line sensitivity endpoint and an explicit P0, P1 or published Δp predictor definition. The portal publishes correlation results only.",
-                "Validate release and compatible cell/drug/design joins, units, coverage and missingness; specify the predictive method. Response correlation alone is insufficient.",
-            ),
-            (
-                "Recalculated CPPA sensitive/resistant",
-                "Source-defined or explicitly specified sensitivity classes, their outcome source and classification rule. The portal publishes group summaries only.",
-                "Validate cell/drug/design joins, class coverage and missingness; specify the comparison method. Two-condition subtraction does not establish sensitivity classes.",
-            ),
-        ],
-    }
-    if surface not in gates:
-        raise ValueError(f"Unknown phenotype surface: {surface}")
-    return [
-        {
-            "Module": module,
-            "Status": "Unavailable — input contract required",
-            "Required input": required,
-            "Activation checks": checks,
-        }
-        for module, required, checks in gates[surface]
-    ]
-
-
-def phenotype_gate_description(surface):
-    """Short scope note beside the declared input gates."""
-    if surface == "patient":
-        return "These analyses are unavailable for the selected cohort. The 64 cached ACC1/MTOR documents across 32 cancers contain fixed published survival curves, not per-participant endpoint records. They cannot recompute survival after patient filtering, arbitrary assay selection or cutoff changes. A published-result viewer would require separate validation of result semantics."
-    if surface == "cell_line":
-        return "These analyses are unavailable. RPPA expression and lineage labels supply neither ecDNA calls, mutation coverage, dependency scores nor per-cell-line drug-sensitivity outcomes. The Drug Sensitivity tab shows the portal's published protein–drug correlations unchanged; recalculating them for a local selection needs the sensitivity outcomes. Each module needs its own sourced input and validated identity contract."
-    if surface == "cppa":
-        return "These analyses are unavailable. Published Δp, individual sample measurements and treatment context describe protein responses. They do not provide per-cell-line sensitivity outcomes. The Published Drug Analyses tab shows the portal's own predictive-marker and sensitive/resistant results unchanged; recalculating them for a local selection needs those outcomes. Response correlations and two-condition comparisons retain their descriptive meaning."
-    raise ValueError(f"Unknown phenotype surface: {surface}")
-
-
 def fenced_text(lines):
     """Preserve the notebooks' plain fenced summary formatting."""
     return "```\n" + "\n".join(lines) + "\n```"
@@ -213,7 +139,6 @@ def dataset_description(frame):
     """Public source and coverage notes, without build terminology."""
     c = frame.attrs["dataset_contract"]
     coverage = frame.attrs["coverage"]
-    annotation = frame.attrs["annotation_coverage"]
     lines = ["### About these data", f"**Selected dataset: {dataset_name(c)}**"]
     if frame.attrs.get("biological_identity_status", {}).get("unresolved_source_record_only", 0):
         lines.append(
@@ -255,7 +180,7 @@ def dataset_description(frame):
     )
     unit = "response conditions" if c.get("resource_family") == "CPPA" else "source observations"
     lines.append(
-        f"- Coverage: {len(frame):,} {unit}; {len(frame.columns):,} measured assays of {coverage['total_features']:,}. {coverage['unmeasured_features']:,} assays have no finite values in this selection and remain in the assay guide."
+        f"- Coverage: {len(frame):,} {unit}; {len(frame.columns):,} measured assays of {coverage['total_features']:,}. {coverage['unmeasured_features']:,} assays have no finite values in this selection and remain listed in Protein and Antibody Details."
     )
     lines.append(
         f"- Missing values: {int(frame.isna().sum().sum()):,} among the measured assays. Values are not filled in; each comparison uses its available measurements."
@@ -266,24 +191,6 @@ def dataset_description(frame):
         lines.append(
             f"- Missing values across the full source panel: {int(c['source_missing_values']):,}."
         )
-    lines.append(
-        f"- Panel annotations: {annotation.get('verified', 0):,} source matched; {annotation.get('unresolved', 0):,} unresolved; {annotation.get('conflicting', 0):,} conflicting."
-    )
-    panel = frame.attrs.get("panel_metadata")
-    if panel is not None and "target_annotation_status" in panel:
-        targets = panel.target_annotation_status.eq("source_supported")
-        partial = targets & panel.annotation_status.ne("verified")
-        candidates = (
-            panel.candidate_gene_symbols.ne("[]")
-            if "candidate_gene_symbols" in panel
-            else targets & False
-        )
-        lines.append(
-            f"- Target annotations: {int(targets.sum()):,} source supported, including {int(partial.sum()):,} with an unresolved reagent. {int(candidates.sum()):,} assays have unverified cross-panel candidates for review."
-        )
-    lines.append(
-        "Panel matching is distinct from experimental validation of an antibody. Target-only annotations and candidate matches do not establish reagent equivalence. Assays and source values remain separate."
-    )
     return "\n".join(lines)
 
 
@@ -316,7 +223,7 @@ def cppa_reconstruction_description(frame):
     return (
         f"**All {len(frame):,} published response conditions are shown.** "
         f"Treatment/control checks: {counts['verified']:,} reproduced; {counts['unresolved']:,} unresolved. "
-        "Unresolved responses stay visible and are marked. These checks use the available sample information and an inferred rounding model; published values are unchanged."
+        "Unresolved responses stay visible and are marked. These checks recompute each response from the published samples, allowing for rounding; published values are unchanged."
     )
 
 

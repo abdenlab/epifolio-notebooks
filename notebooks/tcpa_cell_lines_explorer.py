@@ -54,10 +54,11 @@ def _():
     import pandas as pd
     import plotly.express as px
     import plotly.graph_objects as go
-    from epifolio.tcpa.loaders import load_ccle
+    from epifolio.tcpa.loaders import load_ccle, load_heatmap_clusters
     from plotly.subplots import make_subplots
 
     cell_line_names, df_expr, df_meta, protein_list, tissue_list, tissue_types = load_ccle()
+    heatmap_clusters = load_heatmap_clusters()
     feature_labels = df_expr.attrs["feature_labels"]
     sample_labels = df_expr.attrs["sample_labels"]
     tissue_labels = df_expr.attrs["tissue_labels"]
@@ -65,6 +66,7 @@ def _():
         feature_labels,
         sample_labels,
         tissue_labels,
+        heatmap_clusters,
         cell_line_names,
         df_expr,
         df_meta,
@@ -92,6 +94,7 @@ def _():
         correlate_one_vs_all,
         feature_summary,
         population_summary,
+        precomputed_order,
         two_group_test,
         zscore,
     )
@@ -100,6 +103,7 @@ def _():
         correlate,
         correlate_one_vs_all,
         population_summary,
+        precomputed_order,
         two_group_test,
         feature_summary,
         zscore,
@@ -120,9 +124,7 @@ def _(mo):
     RPPA antibody assays measure proteins or specific protein modifications;
     values retain the source's units and normalization.
 
-    Tissue comparisons use Welch tests with BH correction across eligible assays.
-    Heatmaps can standardize each assay within the stated reference population
-    using sample standard deviation. Counts and protein annotations are in the About the Data tab.
+    Counts and protein annotations are in the About the Data tab.
     """)
     return
 
@@ -450,7 +452,7 @@ def _(
                     format_mapping={"Mean expression": "{:.3f}".format},
                 ),
                 mo.md(
-                    f"The table lists the assays shown in the bars: up to {top_n} highest and {top_n} lowest measured values. Overlapping assays appear once. Z-scores use all CCLE cells as reference, with sample SD."
+                    f"The table lists the assays shown in the bars: up to {top_n} highest and {top_n} lowest measured values. Overlapping assays appear once. Z-scores use all CCLE cell lines as reference, with sample SD."
                 ),
                 mo.ui.table(
                     assay_table(
@@ -567,7 +569,7 @@ def _(
             [
                 fig,
                 mo.md(
-                    f"{analysis_status(result['status'])}. Paired finite measurements: {result['n']}. This exploratory pair comparison does not establish significance; interactive pair selection has no correction for multiple comparisons."
+                    f"{analysis_status(result['status'])}. Paired finite measurements: {result['n']}. Interactive pair selection is not corrected for multiple comparisons."
                 ),
             ]
         )
@@ -588,7 +590,7 @@ def _(
                         "Discover related assays": mo.vstack(
                             [
                                 mo.md(
-                                    "One reference assay versus every other assay in the selected population. Search filters the displayed results only. BH q-values cover the complete eligible one-versus-all family when exploratory inference is permitted; they are not all-pairs q-values. Select a row to plot that pair; changing assay B clears the row override."
+                                    "One reference assay versus every other assay in the selected population. Search filters the displayed results only. BH q-values cover every eligible assay compared with the reference, not all possible pairs. Select a row to plot that pair; changing assay B clears the row override."
                                 ),
                                 correlation_results,
                             ]
@@ -680,7 +682,7 @@ def _(
             if not human
             else "No curated relations match these mapped assays. Change assay A, network scope or search."
             if relations.empty
-            else f"{len(relations):,} source relations; {fig.layout.meta['total_pairs']:,} directed assay pairs. Drawing {len(drawn):,} pairs in stable assay-ID order."
+            else f"{len(relations):,} source relations; {fig.layout.meta['total_pairs']:,} directed assay pairs; {len(drawn):,} drawn."
         )
         return mo.vstack(
             [
@@ -733,7 +735,7 @@ def _(
                         "Interaction source details": mo.vstack(
                             [
                                 mo.md(
-                                    "[SIGNOR](https://signor.uniroma2.it/) direct human protein relations, date/hash-pinned live export; [CC BY 4.0](https://signor.uniroma2.it/about/). Source citation: [Lo Surdo et al., SIGNOR4.0](https://doi.org/10.1093/nar/gkaf1237). Source effect, score, organism, residue, context and PMID are distinct from assay sites and measured r/n. Exact verified gene symbols only; all multi-target mappings remain separate. No orthology/alias transfer, physical-binding or HPRD parity is claimed."
+                                    "[SIGNOR](https://signor.uniroma2.it/) direct human protein relations ([CC BY 4.0](https://signor.uniroma2.it/about/)). Citation: [Lo Surdo et al., SIGNOR 4.0](https://doi.org/10.1093/nar/gkaf1237). SIGNOR's effect, score, residue, context and PMID describe the source relation, not the measured assays."
                                 ),
                                 mo.ui.table([interaction_provenance["source"]], selection=None),
                             ]
@@ -1138,7 +1140,7 @@ def _(
                     {
                         "How to read these results": mo.md(
                             f"Spearman's rho compares one RPPA assay with one drug's AUC across cell lines (portal release {_release}). "
-                            "AUC is the area under the dose–response curve, where a lower value conventionally means greater sensitivity, so a negative rho means higher protein accompanies greater sensitivity; the portal does not restate this direction. "
+                            "AUC is the area under the dose–response curve, where a lower value conventionally means greater sensitivity, so a negative rho means higher protein accompanies greater sensitivity. "
                             "Significance follows the portal: Benjamini–Hochberg within the selected drug across assays, or within the selected assay across drugs, at q ≤ 0.1. Rho, p-values and cell-line counts are published values; only the q-values are calculated here, from the published p-values.\n\n"
                             f"The portal publishes results, not the AUC measurements. These correlations therefore cannot be recalculated for the tissue selections used in other tabs, and the lineage groups are the portal's own. "
                             f"{len(_features)} of {len(feature_labels)} local assays have published results; pairs the portal did not report are omitted."
@@ -1269,8 +1271,11 @@ def _(
     hm_n_cells,
     hm_n_proteins,
     mo,
+    ccle_order,
+    cluster_controls,
     hm_order,
     hm_cut,
+    hm_source,
 ):
     def _view():
         reference = (
@@ -1287,11 +1292,13 @@ def _(
         )
         standardized = zscore(reference.loc[:, features], axis=0, ddof=1)
         displayed = standardized.sample(min(len(standardized), hm_n_cells.value), random_state=42)
+        displayed, raw, precomputed = ccle_order(
+            displayed, reference.loc[displayed.index, features], hm_order, hm_source, hm_cut
+        )
         fig = heatmap_figure(
             displayed,
-            cluster_mode=hm_order.value,
-            cluster_cut=hm_cut.value,
-            raw_data=reference.loc[displayed.index, features],
+            precomputed=precomputed,
+            raw_data=raw,
             feature_labels=feature_labels,
             sample_labels=sample_labels,
             colorscale=hm_colorscale.value,
@@ -1317,18 +1324,7 @@ def _(
                 mo.hstack(
                     [hm_n_proteins, hm_n_cells, hm_colorscale, hm_filter_tissue], justify="start"
                 ),
-                mo.accordion(
-                    {
-                        "Optional local clustering": mo.vstack(
-                            [
-                                mo.hstack([hm_order, hm_cut], justify="start"),
-                                mo.md(
-                                    "Clusters use the displayed matrix with Euclidean distance and average linkage. Only complete entities are clustered; incomplete entities remain at the end with no cluster. No missing values are filled. The cut requests at most this many clusters; ties can give fewer. This local method is separate from the portal's unspecified clustering."
-                                ),
-                            ]
-                        )
-                    }
-                ),
+                mo.accordion({"Clustering": cluster_controls(hm_order, hm_source, hm_cut)}),
                 _view(),
             ]
         )
@@ -1358,16 +1354,21 @@ def _(
     zscore,
     heatmap_figure,
     mo,
+    ccle_order,
+    cluster_controls,
     hm_order,
     hm_cut,
+    hm_source,
 ):
     def _view():
         data = zscore(df_expr, axis=0, ddof=1) if normalize_checkbox.value else df_expr
+        data, raw, precomputed = ccle_order(
+            data, df_expr if normalize_checkbox.value else None, hm_order, hm_source, hm_cut
+        )
         fig_full = heatmap_figure(
             data,
-            cluster_mode=hm_order.value,
-            cluster_cut=hm_cut.value,
-            raw_data=df_expr if normalize_checkbox.value else None,
+            precomputed=precomputed,
+            raw_data=raw,
             compact_hover=True,
             feature_labels=feature_labels,
             sample_labels=sample_labels,
@@ -1392,18 +1393,7 @@ def _(
                     "View every cell line and measured assay; the Protein Heatmap tab's tissue filter does not apply here."
                 ),
                 mo.hstack([full_colorscale, normalize_checkbox], justify="start"),
-                mo.accordion(
-                    {
-                        "Optional local clustering": mo.vstack(
-                            [
-                                mo.hstack([hm_order, hm_cut], justify="start"),
-                                mo.md(
-                                    "Clusters use the displayed matrix with Euclidean distance and average linkage. Only complete entities are clustered; incomplete entities remain at the end with no cluster. No missing values are filled. The cut requests at most this many clusters; ties can give fewer. This local method is separate from the portal's unspecified clustering."
-                                ),
-                            ]
-                        )
-                    }
-                ),
+                mo.accordion({"Clustering": cluster_controls(hm_order, hm_source, hm_cut)}),
                 _view(),
             ]
         )
@@ -1413,28 +1403,13 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo, dataset_description, df_expr, df_meta, population_summary):
-    from epifolio.tcpa.text import assay_display, phenotype_gate_description, phenotype_input_gates
+    from epifolio.tcpa.text import assay_display
 
     def about_tab():
         _counts, _finite = population_summary(df_expr, df_meta["tissue"])
         return mo.vstack(
             [
                 mo.md(dataset_description(df_expr)),
-                mo.accordion(
-                    {
-                        "Analyses requiring additional inputs": mo.vstack(
-                            [
-                                mo.md(phenotype_gate_description("cell_line")),
-                                mo.ui.table(
-                                    phenotype_input_gates("cell_line"),
-                                    selection=None,
-                                    pagination=False,
-                                    label="Phenotype input gates",
-                                ),
-                            ]
-                        )
-                    }
-                ),
                 mo.accordion(
                     {
                         "Selected lineage summary": mo.vstack(
@@ -1461,16 +1436,62 @@ def _(mo, dataset_description, df_expr, df_meta, population_summary):
 def _(mo):
     hm_order = mo.ui.dropdown(
         options={
-            "Current order": "source",
-            "Local row clustering": "rows",
-            "Local assay clustering": "columns",
-            "Local rows and assays": "both",
+            "No clustering": "source",
+            "Cluster cell lines": "rows",
+            "Cluster proteins": "columns",
+            "Cluster both": "both",
         },
-        value="Current order",
-        label="Heatmap order",
+        value="No clustering",
+        label="Clustering",
     )
-    hm_cut = mo.ui.slider(start=1, stop=10, value=3, label="Maximum local clusters", debounce=True)
-    return hm_order, hm_cut
+    hm_cut = mo.ui.slider(start=2, stop=20, value=10, label="Clusters (k)", debounce=True)
+    hm_source = mo.ui.dropdown(
+        options={
+            "TCPA portal map (k = 10)": "tcpa_portal_ngchm",
+            "Consensus clustering (portal method, choose k)": "epifolio_consensus",
+        },
+        value="TCPA portal map (k = 10)",
+        label="Clusters from",
+    )
+    return hm_order, hm_cut, hm_source
+
+
+@app.cell
+def _(heatmap_clusters, mo, precomputed_order):
+    def ccle_order(data, raw, order, source, cut):
+        """Order displayed CCLE values by the precomputed clusters on the chosen axes."""
+        if order.value == "source":
+            return data, raw, None
+        scope = ("CCLE", "ALL")
+        portal = source.value == "tcpa_portal_ngchm"
+        data, *precomputed = precomputed_order(
+            data,
+            heatmap_clusters[0],
+            axis_scopes={
+                "rows": scope if order.value in ("rows", "both") else None,
+                "columns": scope if order.value in ("columns", "both") else None,
+            },
+            k=10 if portal else cut.value,
+            source=source.value,
+        )
+        if raw is not None:
+            raw = raw.loc[data.index, data.columns]
+        return data, raw, tuple(precomputed)
+
+    def cluster_controls(order, source, cut):
+        portal = source.value == "tcpa_portal_ngchm"
+        return mo.vstack(
+            [
+                mo.hstack([order, source] if portal else [order, source, cut], justify="start"),
+                mo.md(
+                    "Order and clusters are the TCPA portal's published map (k = 10). The portal lists Ward on 1 − Pearson; its cell-line clusters match consensus clustering with that method. Z-scoring changes colors only."
+                    if portal
+                    else "Consensus clustering with the portal's method (100 resamples of 80%, Ward on 1 − Pearson), precomputed on all 878 cell lines' released values; z-scoring changes colors only."
+                ),
+            ]
+        )
+
+    return ccle_order, cluster_controls
 
 
 @app.cell(hide_code=True)

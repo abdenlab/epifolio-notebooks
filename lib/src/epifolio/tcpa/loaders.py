@@ -305,6 +305,29 @@ def load_tcga_rppa500():
     return _cohort_result(data, RPPA500_TCGA_DATASET, entry)
 
 
+HEATMAP_CLUSTER_DTYPES = {"k": "int16", "cluster": "Int16", "order": "int32"}
+HEATMAP_CLUSTER_TEXT = ("dataset_id", "scope", "axis", "entity_id", "source")
+
+
+def load_heatmap_clusters():
+    """Read the packaged precomputed heatmap clusters and their build contract."""
+    import pyarrow.parquet as pq
+
+    from epifolio import ASSETS
+
+    path = ASSETS / "data" / "tcpa_heatmap_clusters.parquet"
+    table = pd.read_parquet(path)
+    contract = json.loads(pq.read_schema(path).metadata[b"contract"])
+    if (
+        list(table.columns) != [*HEATMAP_CLUSTER_TEXT, *HEATMAP_CLUSTER_DTYPES]
+        or any(not pd.api.types.is_string_dtype(table[c]) for c in HEATMAP_CLUSTER_TEXT)
+        or any(str(table[c].dtype) != t for c, t in HEATMAP_CLUSTER_DTYPES.items())
+        or contract.get("schema_version") != "1.0.0"
+    ):
+        raise ValueError("Heatmap cluster asset violates its schema contract")
+    return table, contract
+
+
 def delta_wide(long):
     required = {"UID", "feature_id", "modality", "value"}
     if not required <= set(long):

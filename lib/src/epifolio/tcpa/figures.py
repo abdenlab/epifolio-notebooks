@@ -496,11 +496,14 @@ def heatmap_figure(
     cluster_mode="source",
     cluster_cut=3,
     row_id_label="Sample ID",
+    precomputed=None,
 ):
     """Zero-centered colors; optional 1st/99th percentile color-only clipping.
 
     z and hover both retain the supplied values. Standardization, if desired,
     must happen explicitly in the caller with a declared reference population.
+    ``precomputed`` is a ``(row_clusters, column_clusters)`` pair for data the
+    caller already ordered; it replaces local clustering.
     """
     if not data.index.is_unique or not data.columns.is_unique:
         raise ValueError("Heatmap identities must be unique")
@@ -508,23 +511,19 @@ def heatmap_figure(
         not data.index.equals(raw_data.index) or not data.columns.equals(raw_data.columns)
     ):
         raise ValueError("Raw hover data must have identical ordered identities")
-    if cluster_mode != "source":
+    row_clusters = column_clusters = None
+    if precomputed is not None:
+        row_clusters, column_clusters = precomputed
+    elif cluster_mode != "source":
         from .stats import cluster_heatmap
 
         data, row_clusters, column_clusters = cluster_heatmap(data, cluster_mode, cluster_cut)
         if raw_data is not None:
             raw_data = raw_data.loc[data.index, data.columns]
-
-        def cluster_labels(keys, labels, clusters):
-            return {
-                key: f"{label} | Local cluster {clusters[key] if pd.notna(clusters[key]) else 'unassigned'}"
-                for key, label in zip(keys, _aligned_labels(keys, labels))
-            }
-
-        if cluster_mode in ("rows", "both"):
-            sample_labels = cluster_labels(data.index, sample_labels, row_clusters)
-        if cluster_mode in ("columns", "both"):
-            feature_labels = cluster_labels(data.columns, feature_labels, column_clusters)
+        if cluster_mode == "columns":
+            row_clusters = None
+        if cluster_mode == "rows":
+            column_clusters = None
     values = data.to_numpy(dtype=float, copy=True)
     values[~np.isfinite(values)] = np.nan
     finite = values[np.isfinite(values)]
@@ -562,6 +561,16 @@ def heatmap_figure(
         for key, label in zip(data.columns, x_labels)
     ]
     y_hover = [f"{label}<br>{row_id_label}: {key}" for key, label in zip(data.index, y_labels)]
+    if column_clusters is not None:
+        x_hover = [
+            f"{text}<br>{_cluster_name(column_clusters[key])}"
+            for text, key in zip(x_hover, data.columns)
+        ]
+    if row_clusters is not None:
+        y_hover = [
+            f"{text}<br>{_cluster_name(row_clusters[key])}"
+            for text, key in zip(y_hover, data.index)
+        ]
     fig.add_trace(
         go.Heatmap(
             z=values,
@@ -578,39 +587,85 @@ def heatmap_figure(
     )
     x_ticks = list(range(0, len(x_hover), max(1, int(np.ceil(len(x_hover) / 30)))))
     y_ticks = list(range(0, len(y_hover), max(1, int(np.ceil(len(y_hover) / 30)))))
+    # Fixed margins and a row-driven height keep the plot area stable across
+    # orderings; labels are shortened to fit and hover keeps the full text.
+    plot_height = int(np.clip(len(y_hover) * 12, 360, 800))
+    margin = dict(l=210, r=20, t=60, b=150)
+    strip_x = 0.015 if row_clusters is not None else 0.0
+    strip_y = 14 / plot_height if column_clusters is not None else 0.0
     fig.update_layout(
         title=title,
         template="plotly_white",
+        height=plot_height + margin["t"] + margin["b"],
+        margin=margin,
         xaxis=dict(
+            domain=[strip_x + 0.005 if strip_x else 0, 1],
+            automargin=False,
+            tickfont_size=10,
             tickmode="array",
             tickvals=[x_hover[i] for i in x_ticks],
-            ticktext=[x_labels[i] for i in x_ticks],
+            ticktext=[_short_label(x_labels[i]) for i in x_ticks],
         ),
         yaxis=dict(
+            domain=[0, 1 - strip_y - 0.005 if strip_y else 1],
+            anchor="x2" if strip_x else "x",
+            automargin=False,
+            tickfont_size=10,
             tickmode="array",
             tickvals=[y_hover[i] for i in y_ticks],
-            ticktext=[y_labels[i] for i in y_ticks],
+            ticktext=[_short_label(y_labels[i]) for i in y_ticks],
         ),
     )
-    if cluster_mode != "source":
-        fig.add_annotation(
-            text=f"Local clustering: displayed values, Euclidean, average linkage; max {cluster_cut} clusters. Incomplete entities unassigned; no imputation.",
-            xref="paper",
-            yref="paper",
-            x=0,
-            y=-0.18,
-            showarrow=False,
+    hidden = dict(showticklabels=False, showgrid=False, zeroline=False, fixedrange=True)
+    if row_clusters is not None:
+        fig.add_trace(_cluster_strip(row_clusters.reindex(data.index), y_hover, vertical=True))
+        fig.update_layout(xaxis2=dict(domain=[0, strip_x], anchor="y", **hidden))
+    if column_clusters is not None:
+        fig.add_trace(
+            _cluster_strip(column_clusters.reindex(data.columns), x_hover, vertical=False)
         )
-    if robust:
-        fig.add_annotation(
-            text="Colors clipped at symmetric 1st–99th percentile limits; hover retains values",
-            xref="paper",
-            yref="paper",
-            x=0,
-            y=1.08,
-            showarrow=False,
-        )
+        fig.update_layout(yaxis2=dict(domain=[1 - strip_y, 1], anchor="x", **hidden))
     return fig
+
+
+def _short_label(label, limit=28):
+    return label if len(label) <= limit else label[: limit - 1] + "…"
+
+
+def _cluster_name(cluster):
+    return f"Cluster {cluster}" if pd.notna(cluster) else "No cluster (missing values)"
+
+
+def _cluster_strip(clusters, categories, vertical):
+    """One-cell-thick heatmap coloring each row or column by its local cluster."""
+    from epifolio.colors import distinct_palette
+
+    codes = clusters.fillna(0).astype(int).to_numpy()
+    colors = ["#BDBDBD", *distinct_palette(max(1, int(codes.max())))]
+    n = len(colors)
+    scale = [
+        stop for i, color in enumerate(colors) for stop in ((i / n, color), ((i + 1) / n, color))
+    ]
+    strip = dict(colorscale=scale, zmin=-0.5, zmax=n - 0.5, showscale=False)
+    if vertical:
+        return go.Heatmap(
+            z=codes[:, None],
+            x=["Cluster"],
+            y=categories,
+            xaxis="x2",
+            yaxis="y",
+            hovertemplate="%{y}<extra></extra>",
+            **strip,
+        )
+    return go.Heatmap(
+        z=codes[None, :],
+        x=categories,
+        y=["Cluster"],
+        xaxis="x",
+        yaxis="y2",
+        hovertemplate="%{x}<extra></extra>",
+        **strip,
+    )
 
 
 def explain_empty_volcano(fig, results):

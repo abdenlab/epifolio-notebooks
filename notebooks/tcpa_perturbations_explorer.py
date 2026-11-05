@@ -84,7 +84,7 @@ def _(atlas, atlas_entries, cppa_atlas_values, mo, portal_tables):
                     "About the data": mo.vstack(
                         [
                             mo.md(
-                                "Every value on this page is shown as published: names, doses and exposure times keep the studies' own wording, and nothing is filled in or recalculated. "
+                                "Published values are shown unchanged and nothing is filled in: names, doses and exposure times keep the studies' own wording. Means, rankings and correlations are calculated from these values. "
                                 "Compounds are listed under the names the studies used; the atlas does not record drug targets or mechanisms, so none are shown. "
                                 'Tissue is shown only where a cell line\'s name exactly matches a CCLE cell line; other lines are marked "Not yet mapped".'
                             ),
@@ -1294,8 +1294,6 @@ def _(
         fig.update_layout(
             xaxis_title="Protein",
             yaxis_title="Condition",
-            height=min(900, max(500, len(heatmap_data) * 20)),
-            width=900,
         )
 
         metric_label = "Response variance" if len(df_cppa_wide) > 1 else "Absolute Δp"
@@ -1339,11 +1337,11 @@ def _(
                 ),
                 mo.accordion(
                     {
-                        "Optional local clustering": mo.vstack(
+                        "Clustering": mo.vstack(
                             [
                                 mo.hstack([hm_order, hm_cut], justify="start"),
                                 mo.md(
-                                    "Clusters rows and proteins with no gaps; the rest stay at the end."
+                                    "Ward clustering on 1 − Pearson of the displayed Δp values; conditions or proteins with gaps stay at the end."
                                 ),
                             ]
                         )
@@ -1872,8 +1870,6 @@ def _(
     population_summary,
     response_checks_panel,
 ):
-    from epifolio.tcpa.text import phenotype_gate_description, phenotype_input_gates
-
     def about_tab():
         _groups = df_treatment.set_index("UID")["cell_line_name"].reindex(df_cppa_wide.index)
         _counts, _finite = population_summary(df_cppa_wide, _groups)
@@ -1895,29 +1891,14 @@ def _(
                 mo.md(dataset_description(df_cppa_wide)),
                 mo.accordion(
                     {
-                        "Treatment network": mo.md(
+                        "Treatment connectivity": mo.md(
                             "Shows one condition's published Δp per protein. It is descriptive; it does not test sensitivity."
                         )
                     }
                 ),
                 mo.accordion(
                     {
-                        "Analyses requiring additional inputs": mo.vstack(
-                            [
-                                mo.md(phenotype_gate_description("cppa")),
-                                mo.ui.table(
-                                    phenotype_input_gates("cppa"),
-                                    selection=None,
-                                    pagination=False,
-                                    label="Phenotype input gates",
-                                ),
-                            ]
-                        )
-                    }
-                ),
-                mo.accordion(
-                    {
-                        "Assay guide": mo.ui.table(
+                        "Protein and Antibody Details": mo.ui.table(
                             assay_display(df_cppa_wide.attrs["panel_metadata"])
                         )
                     }
@@ -1932,16 +1913,28 @@ def _(
 def _(mo):
     hm_order = mo.ui.dropdown(
         options={
-            "Current order": "source",
-            "Local row clustering": "rows",
-            "Local assay clustering": "columns",
-            "Local rows and assays": "both",
+            "No clustering": "source",
+            "Cluster conditions": "rows",
+            "Cluster proteins": "columns",
+            "Cluster both": "both",
         },
-        value="Current order",
-        label="Heatmap order",
+        value="No clustering",
+        label="Clustering",
     )
-    hm_cut = mo.ui.slider(start=1, stop=10, value=3, label="Maximum local clusters", debounce=True)
+    hm_cut = mo.ui.slider(start=2, stop=20, value=4, label="Clusters (k)", debounce=True)
     return hm_order, hm_cut
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ---
+    Data from [The Cancer Proteome Atlas (TCPA)](https://tcpa.drbioright.org/cppa/), MD Anderson Cancer Center.
+    Citations: [Li et al., Nat Methods 2013](https://doi.org/10.1038/nmeth.2650) ·
+    [Li et al., Cancer Res 2017](https://doi.org/10.1158/0008-5472.CAN-17-0369) ·
+    [Zhao et al., Cancer Cell 2020](https://doi.org/10.1016/j.ccell.2020.10.008)
+    """).style({"font-size": "0.85rem", "opacity": "0.75"})
+    return
 
 
 if __name__ == "__main__":

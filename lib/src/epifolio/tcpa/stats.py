@@ -483,14 +483,16 @@ def zscore(data, axis=0, ddof=1):
 
 
 def cluster_heatmap(data, mode="source", cut=3):
-    """Local average-linkage Euclidean ordering on complete displayed entities.
+    """Local Ward ordering on 1 - Pearson over complete displayed entities.
 
-    Each axis clusters only entities finite across its entire opposite axis.
-    Incomplete entities stay at the end in input order with a missing cluster.
-    Values are neither transformed nor imputed here. ``cut`` is the maximum
-    clusters requested from scipy fcluster(maxclust); ties may yield fewer.
+    Each axis clusters only entities finite and non-constant across its entire
+    opposite axis, since correlation is undefined otherwise. Incomplete entities
+    stay at the end in input order with a missing cluster. Values are neither
+    transformed nor imputed here. ``cut`` is the maximum clusters requested
+    from scipy fcluster(maxclust); ties may yield fewer.
     """
     from scipy.cluster.hierarchy import fcluster, leaves_list, linkage
+    from scipy.spatial.distance import pdist
 
     clean = _dataframe(data)
     if mode not in ("source", "rows", "columns", "both"):
@@ -502,18 +504,59 @@ def cluster_heatmap(data, mode="source", cut=3):
         clusters = pd.Series(pd.NA, index=frame.index, dtype="Int64")
         if not enabled or frame.shape[1] == 0:
             return frame.index, clusters
-        complete = frame.notna().all(axis=1)
+        complete = frame.notna().all(axis=1) & frame.std(axis=1).gt(0)
         keys = frame.index[complete]
         if len(keys) < 2:
             if len(keys):
                 clusters.loc[keys] = 1
             return keys.append(frame.index[~complete]), clusters
-        tree = linkage(frame.loc[keys].to_numpy(), method="average", metric="euclidean")
+        tree = linkage(pdist(frame.loc[keys].to_numpy(), "correlation"), "ward")
         clusters.loc[keys] = fcluster(tree, t=cut, criterion="maxclust")
         return keys[leaves_list(tree)].append(frame.index[~complete]), clusters
 
     rows, row_clusters = axis_order(clean, mode in ("rows", "both"))
     columns, column_clusters = axis_order(clean.T, mode in ("columns", "both"))
+    return clean.loc[rows, columns], row_clusters, column_clusters
+
+
+def precomputed_order(data, table, *, axis_scopes, k, source):
+    """Reorder a displayed matrix by precomputed rows; no computation here.
+
+    ``axis_scopes`` maps "rows"/"columns" to ``(dataset_id, scope)`` or None,
+    which keeps that axis in input order without clusters. Portal features take
+    the portal order with ``epifolio_hclust`` clusters at ``k``. Ids without a
+    row (incomplete in that scope, or ``k`` above its maximum) stay at the end
+    in input order with a missing cluster.
+    """
+    clean = _dataframe(data)
+
+    def axis_order(keys, axis, scope):
+        clusters = pd.Series(pd.NA, index=keys, dtype="Int64")
+        if scope is None:
+            return keys, None
+        dataset_id, name = scope
+        rows = table.loc[
+            table.axis.eq(axis) & table.dataset_id.eq(dataset_id) & table.scope.eq(name)
+        ]
+        at_k = rows.loc[rows.k.eq(k)]
+        if source == "tcpa_portal_ngchm" and axis == "feature":
+            order = rows.loc[rows.source.eq(source)].set_index("entity_id")["order"]
+            cluster = at_k.loc[at_k.source.eq("epifolio_hclust")].set_index("entity_id")["cluster"]
+        else:
+            if source == "epifolio_consensus" and axis == "feature":
+                at_k = at_k.loc[at_k.source.eq("epifolio_hclust")]
+            else:
+                at_k = at_k.loc[at_k.source.eq(source)]
+            order = at_k.set_index("entity_id")["order"]
+            cluster = at_k.set_index("entity_id")["cluster"]
+        cluster = cluster.reindex(order.index)
+        placed = order.reindex(keys).dropna().sort_values(kind="stable").index
+        placed = placed[cluster.reindex(placed).notna().to_numpy()]
+        clusters.loc[placed] = cluster.loc[placed].astype("Int64")
+        return placed.append(keys.difference(placed, sort=False)), clusters
+
+    rows, row_clusters = axis_order(clean.index, "observation", axis_scopes.get("rows"))
+    columns, column_clusters = axis_order(clean.columns, "feature", axis_scopes.get("columns"))
     return clean.loc[rows, columns], row_clusters, column_clusters
 
 

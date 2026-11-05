@@ -60,13 +60,9 @@ def _(mo):
     **RPPA500 TCGA and contributed studies.**
     Explore protein measurements in one source dataset at a time. Contributed studies
     include experimental and non-patient material.
-    Historical PanCan11, RPPA500 TCGA and other contributed studies have separate samples and assay panels.
+    RPPA500 TCGA and each contributed study have their own samples and assay panels.
     RPPA antibody assays measure proteins or specific protein modifications;
     source normalization and available annotations are in the About the Data tab.
-
-    Group tests and correlation p-values are shown only for datasets that support
-    exploratory inference. Heatmap z-scores use all selected observations
-    as the reference population (using sample standard deviation).
     """)
     return
 
@@ -122,7 +118,7 @@ def _(selected_dataset_id, mo, load_tcga_rppa500):
     import pandas as pd
     import plotly.express as px
     import plotly.graph_objects as go
-    from epifolio.tcpa.loaders import load_contrib
+    from epifolio.tcpa.loaders import load_contrib, load_heatmap_clusters
 
     source_groups, source_expr, source_obs, source_proteins = (
         load_tcga_rppa500()
@@ -130,7 +126,8 @@ def _(selected_dataset_id, mo, load_tcga_rppa500):
         else load_contrib(dataset_id=selected_dataset_id)
     )
     mo.stop(source_expr.empty, mo.md("No measured protein assays are available for this dataset."))
-    return source_expr, source_obs, pd, px, go, np
+    heatmap_clusters = load_heatmap_clusters()
+    return source_expr, source_obs, heatmap_clusters, pd, px, go, np
 
 
 @app.cell
@@ -171,7 +168,7 @@ def _(source_obs, mo):
             mo.accordion({"Filter observations": observation_filters.vstack()}),
             observation_grouping,
             mo.md(
-                "Subtype is the source cancer classification: molecular for BRCA and histological for UCEC. Unreported includes missing labels and cancers outside this bounded source coverage. BRCA subtype Normal is not a specimen type. Subtype grouping remains descriptive."
+                "Subtype is the source cancer classification: molecular for BRCA and histological for UCEC. Unreported covers samples without a subtype label, including cancers the source does not subtype. BRCA's Normal is a molecular subtype, not normal tissue. Subtype groups are descriptive."
             )
             if "cancer_subtype" in observation_fields
             else mo.md(""),
@@ -230,7 +227,7 @@ def _(
     protein_list = df_expr.columns.tolist()
     grouping_label = observation_fields[observation_grouping.value]
     mo.md(
-        f"Source ID: {selected_dataset_id} · **{len(df_expr):,} of {len(source_expr):,} source observations selected.** All plots below use this selection. Rows are retained individually; filters do not establish independent biological replicates."
+        f"Source ID: {selected_dataset_id} · **{len(df_expr):,} of {len(source_expr):,} source observations selected.** All plots below use this selection."
     )
     return (
         df_expr,
@@ -258,6 +255,7 @@ def _():
         correlate_one_vs_all,
         feature_summary,
         population_summary,
+        precomputed_order,
         two_group_test,
         zscore,
     )
@@ -266,6 +264,7 @@ def _():
         correlate,
         correlate_one_vs_all,
         population_summary,
+        precomputed_order,
         two_group_test,
         feature_summary,
         zscore,
@@ -616,7 +615,7 @@ def _(
                     + (
                         "P-values describe this exploratory pair only; interactive pair selection has no correction for multiple comparisons."
                         if df_expr.attrs["dataset_contract"].get("analysis_policy") == "exploratory"
-                        else "This descriptive comparison shows no p-value or confidence interval because independence and normalization compatibility have not been established. Open One Protein for descriptive distributions."
+                        else "This dataset does not support statistical tests, so no p-value or confidence interval is shown. Open One Protein for descriptive distributions."
                     )
                 ),
             ]
@@ -643,7 +642,7 @@ def _(
                         "Discover related assays": mo.vstack(
                             [
                                 mo.md(
-                                    "One reference assay versus every other assay in the selected population. Search filters the displayed results only. BH q-values cover the complete eligible one-versus-all family when exploratory inference is permitted; they are not all-pairs q-values. Select a row to plot that pair; changing assay B clears the row override."
+                                    "One reference assay versus every other assay in the selected population. Search filters the displayed results only. Where the dataset supports tests, BH q-values cover every eligible assay compared with the reference, not all possible pairs. Select a row to plot that pair; changing assay B clears the row override."
                                 ),
                                 correlation_results,
                             ]
@@ -735,7 +734,7 @@ def _(
             if not human
             else "No curated relations match these mapped assays. Change assay A, network scope or search."
             if relations.empty
-            else f"{len(relations):,} source relations; {fig.layout.meta['total_pairs']:,} directed assay pairs. Drawing {len(drawn):,} pairs in stable assay-ID order."
+            else f"{len(relations):,} source relations; {fig.layout.meta['total_pairs']:,} directed assay pairs; {len(drawn):,} drawn."
         )
         return mo.vstack(
             [
@@ -788,7 +787,7 @@ def _(
                         "Interaction source details": mo.vstack(
                             [
                                 mo.md(
-                                    "[SIGNOR](https://signor.uniroma2.it/) direct human protein relations, date/hash-pinned live export; [CC BY 4.0](https://signor.uniroma2.it/about/). Source citation: [Lo Surdo et al., SIGNOR4.0](https://doi.org/10.1093/nar/gkaf1237). Source effect, score, organism, residue, context and PMID are distinct from assay sites and measured r/n. Exact verified gene symbols only; all multi-target mappings remain separate. No orthology/alias transfer, physical-binding or HPRD parity is claimed."
+                                    "[SIGNOR](https://signor.uniroma2.it/) direct human protein relations ([CC BY 4.0](https://signor.uniroma2.it/about/)). Citation: [Lo Surdo et al., SIGNOR 4.0](https://doi.org/10.1093/nar/gkaf1237). SIGNOR's effect, score, residue, context and PMID describe the source relation, not the measured assays."
                                 ),
                                 mo.ui.table([interaction_provenance["source"]], selection=None),
                             ]
@@ -849,7 +848,7 @@ def _(
                 None,
                 {},
                 mo.md(
-                    "**Descriptive cohort:** group inference is disabled because independence and normalization compatibility have not been established. Open One Protein for descriptive distributions."
+                    "**Descriptive cohort:** this dataset does not support group tests. Open One Protein for descriptive distributions."
                 ),
             )
         a, b = group_a_dropdown.value, group_b_dropdown.value
@@ -1101,9 +1100,32 @@ def _(
     n_proteins_slider,
     n_samples_slider,
     mo,
+    heatmap_clusters,
+    precomputed_order,
+    selected_dataset_id,
+    source_observation_metadata,
     hm_order,
     hm_cut,
 ):
+    def _scope():
+        """The one RPPA500-TCGA cancer among the displayed rows, if there is one."""
+        if selected_dataset_id != "RPPA500-TCGA":
+            return None
+        shown = df_expr.index[: n_samples_slider.value]
+        cancers = source_observation_metadata["cancer_group"].reindex(shown).unique()
+        return ("RPPA500-TCGA", cancers[0]) if len(cancers) == 1 else None
+
+    def _method():
+        scope = _scope()
+        if scope is None:
+            return "Ward clustering on 1 − Pearson of the displayed values. Filter to one cancer type to use precomputed consensus clusters."
+        table = heatmap_clusters[0]
+        max_k = table.loc[table.scope.eq(scope[1]) & table.axis.eq("observation"), "k"].max()
+        line = "Consensus clustering with the TCPA portal's method (100 resamples of 80%, Ward on 1 − Pearson), precomputed per cancer type on released values. Antibodies not measured in every sample of this cancer stay at the end without a cluster."
+        if hm_cut.value > max_k:
+            line += f" {scope[1]} has clusters only up to k = {max_k}, so samples show without a cluster."
+        return line
+
     def _view():
         features = (
             feature_summary(df_expr)["variance"]
@@ -1113,11 +1135,28 @@ def _(
             .index
         )
         heatmap_z = zscore(df_expr.loc[:, features], axis=0, ddof=1).iloc[: n_samples_slider.value]
+        raw = df_expr.loc[heatmap_z.index, features]
+        scope = _scope()
+        precomputed = None
+        if scope is not None and hm_order.value != "source":
+            heatmap_z, *precomputed = precomputed_order(
+                heatmap_z,
+                heatmap_clusters[0],
+                axis_scopes={
+                    "rows": scope if hm_order.value in ("rows", "both") else None,
+                    "columns": scope if hm_order.value in ("columns", "both") else None,
+                },
+                k=hm_cut.value,
+                source="epifolio_consensus",
+            )
+            precomputed = tuple(precomputed)
+            raw = raw.loc[heatmap_z.index, heatmap_z.columns]
         fig_heatmap = heatmap_figure(
             heatmap_z,
-            cluster_mode=hm_order.value,
+            cluster_mode="source" if scope is not None else hm_order.value,
             cluster_cut=hm_cut.value,
-            raw_data=df_expr.loc[heatmap_z.index, features],
+            precomputed=precomputed,
+            raw_data=raw,
             feature_labels=feature_labels,
             sample_labels=sample_labels,
             colorscale=colorscale_dropdown.value,
@@ -1128,7 +1167,7 @@ def _(
             [
                 fig_heatmap,
                 mo.md(
-                    f"Colors show z-scores relative to all {len(df_expr)} selected observations (using sample standard deviation). The display uses the first {len(heatmap_z)} selected observations. Current order preserves source order; optional local clustering reorders only the displayed matrix. Assays with constant values or fewer than two finite measurements have no z-score."
+                    f"Colors show z-scores relative to all {len(df_expr)} selected observations (using sample standard deviation). The display uses the first {len(heatmap_z)} selected observations. Without clustering, rows keep the source order. Assays with constant values or fewer than two finite measurements have no z-score."
                 ),
             ]
         )
@@ -1137,19 +1176,17 @@ def _(
         return mo.vstack(
             [
                 mo.md(
-                    "Compare the most variable assays across the first selected number of observations. Heatmap order controls optional local clustering."
+                    "Compare the most variable assays across the first selected number of observations. The Clustering menu optionally reorders the heatmap."
                 ),
                 mo.hstack(
                     [n_proteins_slider, n_samples_slider, colorscale_dropdown], justify="start"
                 ),
                 mo.accordion(
                     {
-                        "Optional local clustering": mo.vstack(
+                        "Clustering": mo.vstack(
                             [
                                 mo.hstack([hm_order, hm_cut], justify="start"),
-                                mo.md(
-                                    "Clusters use the displayed matrix with Euclidean distance and average linkage. Only complete entities are clustered; incomplete entities remain at the end with no cluster. No missing values are filled. The cut requests at most this many clusters; ties can give fewer. This local method is separate from the portal's unspecified clustering."
-                                ),
+                                mo.md(_method()),
                             ]
                         )
                     }
@@ -1163,28 +1200,13 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo, dataset_description, df_expr, df_obs, population_summary):
-    from epifolio.tcpa.text import assay_display, phenotype_gate_description, phenotype_input_gates
+    from epifolio.tcpa.text import assay_display
 
     def about_tab():
         _counts, _finite = population_summary(df_expr, df_obs["analysis_group"])
         return mo.vstack(
             [
                 mo.md(dataset_description(df_expr)),
-                mo.accordion(
-                    {
-                        "Analyses requiring additional inputs": mo.vstack(
-                            [
-                                mo.md(phenotype_gate_description("patient")),
-                                mo.ui.table(
-                                    phenotype_input_gates("patient"),
-                                    selection=None,
-                                    pagination=False,
-                                    label="Phenotype input gates",
-                                ),
-                            ]
-                        )
-                    }
-                ),
                 mo.accordion(
                     {
                         "Selected cohort summary": mo.vstack(
@@ -1216,16 +1238,28 @@ def _(mo, dataset_description, df_expr, df_obs, population_summary):
 def _(mo):
     hm_order = mo.ui.dropdown(
         options={
-            "Current order": "source",
-            "Local row clustering": "rows",
-            "Local assay clustering": "columns",
-            "Local rows and assays": "both",
+            "No clustering": "source",
+            "Cluster samples": "rows",
+            "Cluster proteins": "columns",
+            "Cluster both": "both",
         },
-        value="Current order",
-        label="Heatmap order",
+        value="No clustering",
+        label="Clustering",
     )
-    hm_cut = mo.ui.slider(start=1, stop=10, value=3, label="Maximum local clusters", debounce=True)
+    hm_cut = mo.ui.slider(start=2, stop=20, value=4, label="Clusters (k)", debounce=True)
     return hm_order, hm_cut
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ---
+    Data from [The Cancer Proteome Atlas (TCPA)](https://tcpa.drbioright.org/rppa500/main.html), MD Anderson Cancer Center.
+    Citations: [Li et al., Nat Methods 2013](https://doi.org/10.1038/nmeth.2650) ·
+    [Li et al., Cancer Res 2017](https://doi.org/10.1158/0008-5472.CAN-17-0369) ·
+    [Li et al., Nat Cancer 2024](https://doi.org/10.1038/s43018-024-00817-x)
+    """).style({"font-size": "0.85rem", "opacity": "0.75"})
+    return
 
 
 if __name__ == "__main__":

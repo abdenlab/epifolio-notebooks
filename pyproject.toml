@@ -20,6 +20,7 @@ dependencies = [
     "polars>=1.42.0",
     "wigglystuff>=0.5.9",
     "dtour>=0.4.4",
+    "genome-spy-python[arrow]>=0.10.0",
 ]
 
 [tool.uv.sources]
